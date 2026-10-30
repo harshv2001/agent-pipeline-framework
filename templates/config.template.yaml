@@ -1,0 +1,36 @@
+pipeline_name: <replace-with-folder-name>
+extends_version: "1.0"
+
+source:
+  connector_type: <mcp | connector | skill | browser | filesystem>
+  connector_ref: <name>
+  access: read_only
+  scope_source: fixed   # fixed (default) | runtime — see docs/07-configuration-reference.md. Only set 'runtime' if the exact value below should come from run-requests/ per run instead of being a permanent literal.
+  scope: <query, handle, or path>
+  poll_frequency_minutes: <int>   # informational — actual cadence set by the scheduled task
+
+decision:
+  logic_ref: ./logic.md
+  max_review_cycles: 2
+  escalate_on_ambiguous: true
+
+output_destinations:
+  - name: <label>
+    connector_type: <mcp | connector | skill | browser>
+    connector_ref: <name>
+    access: write
+    action_scope: <single specific action — e.g. create_draft_post>
+
+review:
+  agent_review_policy_ref: ./spec.md#review-policy
+  review_sla_hours: <int, optional — omit if not time-sensitive>
+
+schedule:
+  discovery_run_trigger_id: <fill in after creating the scheduled task>
+  publish_run_trigger_id: <fill in after creating the scheduled task>
+
+notifications:
+  include_in_digest: true
+
+audit:
+  retention: indefinite
