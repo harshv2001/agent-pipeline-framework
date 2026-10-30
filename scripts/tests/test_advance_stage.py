@@ -15,8 +15,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import advance_stage as adv  # noqa: E402
 from _common import (  # noqa: E402
-    STAGES, check_completeness, manifest_hash, queue_report, read_item, sha256_hex, stage_file,
-    write_item,
+    STAGES, append_audit_log, check_completeness, cleanup_orphaned_reviews,
+    find_audit_entries_by_ref, manifest_hash, orphaned_review_cycles, queue_report, read_item,
+    sha256_hex, stage_file, write_item,
 )
 
 PIPE = "demo-pipeline"
@@ -350,6 +351,120 @@ class ManifestTests(unittest.TestCase):
             self.assertEqual(adv.main(), 1)
         finally:
             sys.argv = old_argv
+
+
+class OrphanedReviewTests(unittest.TestCase):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.p = make_pipeline(Path(self._tmp.name))
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def _write_review(self, filename_id, item_id, supersedes):
+        write_item(stage_file(self.p, "04-agent-review", filename_id), {
+            "item_id": item_id, "pipeline": PIPE, "stage": "04-agent-review",
+            "status": "reviewed", "source_ref": "https://example.test/x", "produced_by": "test",
+            "created_at": "2026-10-10T00:00:00Z", "supersedes": supersedes,
+        }, "\nreview body\n")
+
+    def test_mismatched_item_id_is_detected_and_removed(self):
+        # real-world shape: filed as VB-009-v2.md but frontmatter still says VB-009
+        self._write_review("VB-009-v2", "VB-009", None)
+        put(self.p, "08-executed", "VB-009", "promoted")
+        self.assertEqual(orphaned_review_cycles(self.p), [("VB-009-v2", "VB-009")])
+        removed, skipped = cleanup_orphaned_reviews(self.p, "human")
+        self.assertEqual(removed, ["VB-009-v2"])
+        self.assertEqual(skipped, [])
+        self.assertFalse(stage_file(self.p, "04-agent-review", "VB-009-v2").exists())
+        log = "".join(f.read_text(encoding="utf-8") for f in (self.p / "stage-store" / "09-audit-log").glob("*.md"))
+        self.assertIn("removed orphaned 04-agent-review scratch record", log)
+
+    def test_supersedes_into_04_is_detected_and_removed(self):
+        # real-world shape: filename and item_id both VB-001-v2, but it
+        # supersedes a 04-agent-review record, not a 07-rejected one --
+        # revise() never does that.
+        self._write_review("VB-001-v2", "VB-001-v2", "stage-store/04-agent-review/VB-001.md")
+        put(self.p, "08-executed", "VB-001", "promoted")
+        self.assertEqual(orphaned_review_cycles(self.p), [("VB-001-v2", "VB-001-v2")])
+        removed, _ = cleanup_orphaned_reviews(self.p, "human")
+        self.assertEqual(removed, ["VB-001-v2"])
+
+    def test_genuine_revise_in_progress_is_not_treated_as_orphan(self):
+        # a real --revise()-created draft reaching 04-agent-review: item_id
+        # matches filename, and supersedes correctly points to the
+        # 07-rejected record revise() itself created -- the one shape
+        # genuine revise() output takes, per revise()'s own code. Stuck
+        # there is a real, unresolved item -- never auto-removed.
+        put(self.p, "05-pending-human-review", "cd1", "pending")
+        rejected_path, _ = adv.revise(self.p, "cd1", "human", "needs more depth")
+        self._write_review("cd1-v2", "cd1-v2", str(rejected_path.relative_to(self.p)))
+        self.assertEqual(orphaned_review_cycles(self.p), [])
+
+    def test_unresolved_base_is_not_removed(self):
+        self._write_review("VB-020-v2", "VB-020", None)
+        # VB-020's base never reached 06/07/08 -- still genuinely in progress.
+        removed, skipped = cleanup_orphaned_reviews(self.p, "human")
+        self.assertEqual(removed, [])
+        self.assertEqual(len(skipped), 1)
+        self.assertIn("hasn't reached a terminal stage", skipped[0])
+        self.assertTrue(stage_file(self.p, "04-agent-review", "VB-020-v2").exists())
+
+    def test_dry_run_changes_nothing(self):
+        self._write_review("VB-009-v2", "VB-009", None)
+        put(self.p, "08-executed", "VB-009", "promoted")
+        removed, _ = cleanup_orphaned_reviews(self.p, "human", dry_run=True)
+        self.assertEqual(removed, ["VB-009-v2"])
+        self.assertTrue(stage_file(self.p, "04-agent-review", "VB-009-v2").exists())
+
+    def test_removal_note_says_no_prior_entry_when_none_exists(self):
+        self._write_review("VB-009-v2", "VB-009", None)
+        put(self.p, "08-executed", "VB-009", "promoted")
+        cleanup_orphaned_reviews(self.p, "human")
+        log = "".join(f.read_text(encoding="utf-8") for f in (self.p / "stage-store" / "09-audit-log").glob("*.md"))
+        # YAML line-folds long scalars, so compare against collapsed whitespace.
+        flat = " ".join(log.split())
+        self.assertIn("no audit-log entry ever referenced this file", flat)
+
+    def test_removal_note_cites_prior_entry_instead_of_denying_it(self):
+        # the real-world case: a prior entry WAS logged, under the base
+        # item_id, ref pointing at this versioned file -- the removal note
+        # must not then falsely claim nothing was ever logged.
+        self._write_review("VB-001-v2", "VB-001", None)
+        put(self.p, "08-executed", "VB-001", "promoted")
+        append_audit_log(self.p, {
+            "timestamp": "2026-10-07T15:37:31Z", "item_id": "VB-001", "pipeline": PIPE,
+            "event": "agent_reviewed", "actor": "agent-reviewer v1",
+            "detail": "cycle 2: pass", "ref": "stage-store/04-agent-review/VB-001-v2.md",
+        })
+        cleanup_orphaned_reviews(self.p, "human")
+        log = "".join(f.read_text(encoding="utf-8") for f in (self.p / "stage-store" / "09-audit-log").glob("*.md"))
+        flat = " ".join(log.split())
+        self.assertNotIn("no audit-log entry ever referenced this file", flat)
+        self.assertIn("a prior audit-log entry already covers this file", flat)
+        self.assertIn("agent_reviewed", flat)
+
+    def test_find_audit_entries_by_ref_matches_across_slash_styles(self):
+        append_audit_log(self.p, {
+            "timestamp": "2026-10-07T00:00:00Z", "item_id": "x", "pipeline": PIPE,
+            "event": "drafted", "actor": "test", "detail": "d",
+            "ref": r"stage-store\04-agent-review\x.md",
+        })
+        found = find_audit_entries_by_ref(self.p, "stage-store/04-agent-review/x.md")
+        self.assertEqual(len(found), 1)
+        self.assertEqual(found[0]["event"], "drafted")
+
+    def test_cli_cleanup_orphaned_reviews(self):
+        self._write_review("VB-009-v2", "VB-009", None)
+        put(self.p, "08-executed", "VB-009", "promoted")
+        old_argv = sys.argv
+        try:
+            sys.argv = ["advance_stage.py", "--pipeline", str(self.p), "--cleanup-orphaned-reviews",
+                        "--actor", "human (test)"]
+            self.assertEqual(adv.main(), 0)
+        finally:
+            sys.argv = old_argv
+        self.assertFalse(stage_file(self.p, "04-agent-review", "VB-009-v2").exists())
 
 
 if __name__ == "__main__":

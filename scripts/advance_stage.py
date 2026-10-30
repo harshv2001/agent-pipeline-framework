@@ -56,6 +56,13 @@ Usage:
     python scripts/advance_stage.py --pipeline pipelines/<name> --cleanup-queue --dry-run
     python scripts/advance_stage.py --pipeline pipelines/<name> --cleanup-queue --actor "human (Harsh)"
 
+    # Remove 04-agent-review scratch records left by an extra, same-run
+    # automated review cycle that bypassed this script entirely (no audit
+    # entry, no 03-draft counterpart) -- verified safe first: only removes
+    # one whose real item already resolved at 06/07/08 elsewhere.
+    python scripts/advance_stage.py --pipeline pipelines/<name> --cleanup-orphaned-reviews --dry-run
+    python scripts/advance_stage.py --pipeline pipelines/<name> --cleanup-orphaned-reviews --actor "human (Harsh)"
+
     # End-of-run check (base-framework/SKILL.md, discovery run step 9, run
     # this before committing): fails if any item discovered this run was
     # left at 02/03/04 instead of reaching a final-or-waiting status
@@ -109,6 +116,7 @@ from _common import (
     QUEUE_STAGE,
     append_audit_log,
     check_completeness,
+    cleanup_orphaned_reviews,
     manifest_hash,
     next_version_id,
     now_iso,
@@ -510,8 +518,13 @@ def main() -> int:
                               "(base-framework/agents/publisher-agent.md, Contract step 1).")
     parser.add_argument("--cleanup-queue", dest="cleanup_queue", action="store_true",
                          help="Remove leftover 05 copies of items already at 06/07/08 (verified byte-identical first)")
+    parser.add_argument("--cleanup-orphaned-reviews", dest="cleanup_orphaned_reviews", action="store_true",
+                         help="Remove 04-agent-review scratch records from an extra same-run "
+                              "review cycle that never went through this script, verified "
+                              "safe first (their real item already resolved at 06/07/08)")
     parser.add_argument("--dry-run", dest="dry_run", action="store_true",
-                         help="With --cleanup-queue: show what would be removed, change nothing")
+                         help="With --cleanup-queue or --cleanup-orphaned-reviews: show what "
+                              "would be removed, change nothing")
     parser.add_argument("--promote", metavar="ITEM_ID",
                          help="Record that a staged item was promoted to production (08 status staged -> promoted)")
     parser.add_argument("--ref", default="", help="For --promote: commit/URL evidence, e.g. 'main@58bd26b'")
@@ -551,6 +564,15 @@ def main() -> int:
         removed, skipped = cleanup_queue(pipeline_dir, args.actor, dry_run=args.dry_run)
         verb = "Would remove" if args.dry_run else "Removed"
         print(f"{verb} {len(removed)} leftover 05 copy(ies)" + (": " + ", ".join(removed) if removed else ""))
+        for s in skipped:
+            print(f"  not removed: {s}")
+        return 1 if skipped else 0
+
+    if args.cleanup_orphaned_reviews:
+        removed, skipped = cleanup_orphaned_reviews(pipeline_dir, args.actor, dry_run=args.dry_run)
+        verb = "Would remove" if args.dry_run else "Removed"
+        print(f"{verb} {len(removed)} orphaned review-cycle record(s)"
+              + (": " + ", ".join(removed) if removed else ""))
         for s in skipped:
             print(f"  not removed: {s}")
         return 1 if skipped else 0
@@ -602,8 +624,8 @@ def main() -> int:
         print(f"Logged {args.event} event for {args.item_id_for_event}")
     else:
         print("error: nothing to do — pass --approve, --reject, --revise, --sync, --move, --event, "
-              "--pending, --cleanup-queue, --check-completeness, --verify-manifest, or --promote",
-              file=sys.stderr)
+              "--pending, --cleanup-queue, --cleanup-orphaned-reviews, --check-completeness, "
+              "--verify-manifest, or --promote", file=sys.stderr)
         return 1
 
     return 0
