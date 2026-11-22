@@ -1,7 +1,10 @@
 # Agent Pipeline Framework
 
-A base specification for building governed, multi-agent content and automation
-pipelines with Claude.
+A base specification and working scripts for building **governed, multi-agent AI pipelines** —
+automated content and publishing workflows, designed for **Claude Code**, where every
+item passes a two-gate review (an automated agent check, then an explicit human
+approval) and gets hash-locked before it ships. A complete, runnable example
+is included (see "Layout" below) — this isn't only a specification.
 
 ## What this is
 
@@ -168,6 +171,56 @@ until a human merges to production and records it with
 
 Known gaps and where this is headed next are tracked as issues — contributions
 and discussion welcome.
+
+## Frequently asked questions
+
+**What is this, in one sentence?**
+A base specification plus working scripts for AI agent pipelines that read a
+source, decide what matters, draft content, route it through an automated
+review and then an explicit human approval gate, and publish — with every
+decision logged and the approved content hash-locked before it ships.
+
+**Does this require Claude Code?**
+The orchestration — dispatching the Source/Triage/Content/Reviewer/Publisher
+roles automatically and loading Skills — is built for Claude Code / Cowork
+(see "How it runs" above). The agent-role prompts themselves
+(`base-framework/agents/*.md`) are plain markdown with no Claude-specific API
+calls, so another AI coding assistant can act as each role manually, one
+dispatch at a time. `examples/agency-blog-pipeline/WALKTHROUGH.md` is written
+to work that way with Codex, ChatGPT, or Gemini too, not only Claude Code.
+
+**Is there a working example, or just a specification?**
+[`examples/agency-blog-pipeline/`](examples/agency-blog-pipeline/) is a
+complete, runnable instance — a digital agency's client-blog pipeline, with
+one item carried through all ten governance stages for real, plus a script
+(`setup_client.py`) that generates a fresh instance for an actual client.
+
+**How is this different from a no-code automation tool (n8n, Zapier) or a
+plain prompt chain?**
+Two independent review gates before anything publishes (an automated agent
+check against a written policy, then an explicit human decision), a
+read-only guarantee on every source, an append-only audit log of every
+decision, and a content hash that proves the published output matches
+exactly what was approved — rather than a sequence of API calls with no
+built-in checkpoint.
+
+**Is this safe to use for content that carries real risk — a brand, a
+regulated industry, anything with a compliance reviewer in the loop?**
+That's the specific case it's built for (see "Why this exists" above and
+`docs/01-governance-rules.md`). It deliberately is not optimized for
+throughput — the two review gates and the hash check are friction by
+design, not an oversight.
+
+**Can I use this with GPT-4, Gemini, or another model instead of Claude?**
+The governance model itself — the stage-store, the hashing, the audit log —
+is plain files and scripts, not tied to any one model. The orchestration
+layer (`base-framework/SKILL.md`) is written for Claude Code specifically;
+using a different agent runtime means replacing that dispatch mechanism,
+not the governance rules.
+
+**Where do I start?**
+See "Start here" above — `examples/agency-blog-pipeline/` to see it running
+first, or `docs/00-overview-and-philosophy.md` to read the model first.
 
 ## License
 

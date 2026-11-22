@@ -1,18 +1,22 @@
 # Walkthrough — works with any AI assistant, or none
 
-This replaces the old single-bash-block "Run it yourself" section. Every
-step below is marked **[TERMINAL]** (a literal command — run it exactly
-as written, in any shell) or **[ANY AI CHAT]** (open whichever assistant
-you already use — Claude, Codex, ChatGPT, Gemini, or Claude Code — paste
-the given prompt, and save its reply to the named file). Nothing here
-needs a specific assistant or a specific terminal: `[TERMINAL]` commands
-are plain Python, no shell-specific syntax (no `$(date ...)`, nothing
-that only works in bash), and `[ANY AI CHAT]` steps need nothing but a
-chat box you can paste text into and copy text out of — not file access,
-not code execution, not a Claude-specific "Skill."
+**In Claude Code, use [`setup-agency-client/SKILL.md`](setup-agency-client/SKILL.md)
+instead of this page** — it runs this same sequence as one conversation.
+This page is for every other case: a different AI assistant, or no
+assistant at all.
 
-**If your assistant *does* have file/terminal access** (Claude Code,
-Codex CLI, a terminal-connected Gemini session), it can just do the
+Every step below is marked **[TERMINAL]** (a literal command — run it
+exactly as written, in any shell) or **[ANY AI CHAT]** (open whichever
+assistant you use — Claude, Codex, ChatGPT, Gemini — paste the given
+prompt, and save its reply to the named file). Nothing here needs a
+specific assistant or a specific terminal: `[TERMINAL]` commands are
+plain Python, no shell-specific syntax (no `$(date ...)`, nothing that
+only works in bash), and `[ANY AI CHAT]` steps need nothing but a chat
+box you can paste text into and copy text out of — not file access, not
+code execution, not a Claude-specific "Skill."
+
+**If your assistant *does* have file/terminal access** (Codex CLI, a
+terminal-connected Gemini session), it can just do the
 `[ANY AI CHAT]` steps directly against the real files instead of you
 copy-pasting — that's what `setup-agency-client/SKILL.md` automates for
 Claude Code specifically. This walkthrough is the manual version that

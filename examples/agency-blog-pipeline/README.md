@@ -9,10 +9,9 @@ you've seen it run.
 
 The running example: **AgencyA** runs the blog for its client
 **ClientA** (`clienta.com` — a fictional small-business bookkeeping and
-fractional-CFO service; see `sample-client-site/`). Every file in this
-folder uses `ClientA` as a literal, searchable placeholder — adapting
-this for a real client is a find-and-replace plus a few config values,
-not a rewrite.
+fractional-CFO service; see `sample-client-site/`). Adapting this for a
+real client is a generated step (`setup_client.py`, "Adapting this for a
+real client" below), not a rewrite.
 
 See [`ARCHITECTURE.md`](ARCHITECTURE.md) for this example's own diagrams
 (the topic-engine → CSV handoff, the output-mode branch, and a
@@ -45,14 +44,17 @@ through regardless of where its topic came from.
 
 ## Run it yourself
 
-See **[`WALKTHROUGH.md`](WALKTHROUGH.md)** — it replaces what used to be
-a single bash block here. Every step there is marked `[TERMINAL]` (a
-literal, copy-pasteable command, no shell-specific syntax) or
-`[ANY AI CHAT]` (paste a given prompt into whichever assistant you
-already use — Claude, Codex, ChatGPT, Gemini, or Claude Code — and save
-its reply to the named file). If you use Claude Code specifically,
-[`setup-agency-client/SKILL.md`](setup-agency-client/SKILL.md)
-automates the onboarding conversation end to end instead.
+**In Claude Code** (the default way to run this): invoke
+[`setup-agency-client/SKILL.md`](setup-agency-client/SKILL.md). It runs
+the whole onboarding conversation for you — asks for the client's name,
+domain, and services, calls `setup_client.py`, then walks the site-read
+and topic-proposal steps as its own dispatch.
+
+**In any other AI assistant** (Codex, ChatGPT, Gemini) — or with no
+assistant at all — see [`WALKTHROUGH.md`](WALKTHROUGH.md) instead. Every
+step there is marked `[TERMINAL]` (a literal, copy-pasteable command, no
+shell-specific syntax) or `[ANY AI CHAT]` (paste a given prompt into
+whichever assistant you use and save its reply to the named file).
 
 See [`topic-engine/README.md`](topic-engine/README.md) and
 [`pipeline/clienta-blog-pipeline/spec.md`](pipeline/clienta-blog-pipeline/spec.md)
@@ -82,14 +84,13 @@ it to see exactly what a real publish would produce.
 
 ## Adapting this for a real client
 
-**Don't find-and-replace `ClientA` by hand.** Earlier versions of this
-README said to edit three files; the actual count is closer to 40, once
-you count Python scripts that used to hardcode a service list or a
-palette. That's exactly the kind of manual step that's easy to get
-*mostly* right and never notice the one spot you missed. Every script in
-this example now reads a client's name, services, and brand colors from
-one file, `client-config.yaml`, instead — so adapting this is a generated
-step, not a search-and-hope one:
+**Don't find-and-replace `ClientA` by hand** — the name appears in
+dozens of files, and a manual pass is exactly the kind of step that's
+easy to get *mostly* right and never notice the one spot you missed.
+Every script in this example reads the client's name, services, and
+brand colors from one file, `client-config.yaml` — nothing is
+hardcoded. Adapting this for a new client is a generated step, not a
+search-and-hope one:
 
 ```bash
 python setup_client.py --name "Acme Bookkeeping" --domain acme.com \
@@ -119,9 +120,9 @@ From there:
 2. Run the bootstrap (`topic-engine/scripts/analyze_site.py`, then have
    an AI assistant act as the Topic Discovery Agent and write a real
    `site-profile.md` and propose real topics against the real site) —
-   see [`WALKTHROUGH.md`](WALKTHROUGH.md) for the exact sequence,
-   or [`setup-agency-client/SKILL.md`](setup-agency-client/SKILL.md) if
-   you're in Claude Code.
+   use [`setup-agency-client/SKILL.md`](setup-agency-client/SKILL.md) if
+   you're in Claude Code, or [`WALKTHROUGH.md`](WALKTHROUGH.md) for the
+   exact sequence with any other assistant.
 3. Point the new instance's `config.yaml`'s
    `output_destinations[0].connector_ref` at the client's actual site
    repo (`git:github.com/...`) instead of the local
