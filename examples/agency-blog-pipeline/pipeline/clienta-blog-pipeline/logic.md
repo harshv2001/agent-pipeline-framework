@@ -6,7 +6,7 @@ version: "1"
 # Decision Logic
 
 This is read by the Triage Agent (`base-framework/agents/triage-agent.md`)
-for every newly discovered item. Every row in `source-data/clienta_topics.csv`
+for every newly discovered item. Every row in `source-data/topics.csv`
 has already passed through the topic-engine's own human-approval gate
 (`../../topic-engine/schema/REGISTRY-SCHEMA.md`) before it ever reaches
 this pipeline — so, unlike a discovery pipeline deciding *whether*
@@ -18,7 +18,7 @@ own references still hold. It does not re-judge the topic's merit.
 The specific fields from `01-raw-metadata` this logic actually uses:
 
 - `Service Addressed` / `Service URL` — must match an entry in
-  `source-data/clienta_brand_profile.md`'s service table.
+  `source-data/brand-profile.md`'s service table.
 - `Closest Existing Post` — if non-blank, must be a URL that plausibly
   resolves against the client's site (per the Source Agent's grounding
   check).
@@ -30,7 +30,7 @@ The specific fields from `01-raw-metadata` this logic actually uses:
 Ordered — the first matching rule wins.
 
 1. `Service Addressed` or `Service URL` doesn't match any row in
-   `source-data/clienta_brand_profile.md`'s service table → `escalate`
+   `source-data/brand-profile.md`'s service table → `escalate`
    (the topic engine's site read may be stale, or the client's services
    changed since the topic was proposed).
 2. `Closest Existing Post` is non-blank but doesn't resolve against the
@@ -58,7 +58,7 @@ decide:
 ## Explicitly Prohibited
 
 - Never `proceed` on a row this logic hasn't actually checked against
-  `source-data/clienta_brand_profile.md` — a plausible-looking
+  `source-data/brand-profile.md` — a plausible-looking
   `Service Addressed` string is not the same as one that matches the
   table.
 - Never treat a row's `Priority` value as a reason to skip Rules 1–3 —

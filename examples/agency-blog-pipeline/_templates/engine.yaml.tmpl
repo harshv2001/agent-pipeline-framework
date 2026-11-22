@@ -1,0 +1,27 @@
+engine_name: {{CLIENT_SLUG}}-topic-engine
+extends_version: "1.0"   # this example's engine/pipeline contract version, not the base framework's
+
+client:
+  name: {{CLIENT_NAME}}
+  site_source: ../sample-client-site   # point this at a real export/crawl of the live client site for an actual engagement
+  industry_hint: null   # optional — set this to skip inference; otherwise the agent infers it from the site read
+
+bootstrap:
+  required_before_first_run: true   # site-profile/site-profile.md must exist before any topic is proposed — agents/topic-discovery-agent.md Contract step 1
+  site_profile_ref: ./site-profile/site-profile.md
+
+feeds_pipeline:
+  name: {{CLIENT_SLUG}}-blog-pipeline
+  path: ../pipeline/{{CLIENT_SLUG}}-blog-pipeline
+  topics_csv_ref: ../pipeline/{{CLIENT_SLUG}}-blog-pipeline/source-data/topics.csv
+
+registry:
+  topics_dir: ./registry/topics
+  ledger_ref: ./registry/ledger.csv
+  registry_csv_ref: ./registry/registry.csv
+
+review:
+  requires_human_approval: true   # every proposed topic needs an approved ledger row before export_topics_csv.py will touch it — never auto-exported
+
+audit:
+  retention: indefinite

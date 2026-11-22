@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Set up a local git repo standing in for ClientA's real site repo.
+"""Set up a local git repo standing in for the client's real site repo.
 
 This example's default output mode (`output_mode: git_branch` in
 config.yaml) commits staged posts to a branch of a site repo, exactly
@@ -26,6 +26,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from _client_config import load_client_config
+
 PIPELINE_DIR = Path(__file__).resolve().parent.parent
 REPO_DIR = PIPELINE_DIR / "demo-site-repo"
 SAMPLE_SITE_DIR = PIPELINE_DIR / ".." / ".." / "sample-client-site"
@@ -46,15 +48,17 @@ def main() -> int:
         print(f"error: fixture site not found: {site_dir}", file=sys.stderr)
         return 1
 
+    client_name = load_client_config(PIPELINE_DIR).get("client", {}).get("name", "the client")
+
     shutil.copytree(site_dir, REPO_DIR)
     run_git("init", "-b", "main")
     run_git("config", "user.email", "demo@example.invalid")
     run_git("config", "user.name", "agency-blog-pipeline example")
     run_git("add", "-A")
-    run_git("commit", "-m", "Initial import: ClientA site fixture (standing in for 'already live')")
+    run_git("commit", "-m", f"Initial import: {client_name} site fixture (standing in for 'already live')")
 
     print(f"Created {REPO_DIR} on branch 'main'.")
-    print("This stands in for ClientA's real site repo -- scripts/publish_output.py "
+    print(f"This stands in for {client_name}'s real site repo -- scripts/publish_output.py "
           "will create a stage/insights-{item_id} branch here for each approved post.")
     return 0
 

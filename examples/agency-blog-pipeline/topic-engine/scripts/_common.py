@@ -54,6 +54,38 @@ def write_topic(path: Path, frontmatter: dict, body: str) -> None:
     path.write_text(render(frontmatter, body), encoding="utf-8")
 
 
+_MAX_CLIENT_CONFIG_SEARCH_LEVELS = 6
+
+
+def client_config_path(engine_dir: Path) -> Path:
+    """Searches upward from this engine folder rather than assuming a
+    fixed depth -- robust whether client-config.yaml sits at the bundle
+    root setup_client.py wrote (one level up) or gets relocated later."""
+    here = engine_dir.resolve()
+    for _ in range(_MAX_CLIENT_CONFIG_SEARCH_LEVELS):
+        candidate = here / "client-config.yaml"
+        if candidate.exists():
+            return candidate
+        if here.parent == here:
+            break
+        here = here.parent
+    return engine_dir / ".." / "client-config.yaml"
+
+
+def load_client_config(engine_dir: Path) -> dict:
+    """The one file every client-specific value (name, slug, domain,
+    services, brand palette) lives in -- never hardcode one of these in a
+    script."""
+    path = client_config_path(engine_dir)
+    if not path.exists():
+        raise FileNotFoundError(
+            f"No client-config.yaml found above {engine_dir} (searched up to "
+            f"{_MAX_CLIENT_CONFIG_SEARCH_LEVELS} parent directories) -- every "
+            f"instance needs one (setup_client.py writes it for a new instance)"
+        )
+    return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+
+
 def topics_dir(engine_dir: Path) -> Path:
     return engine_dir / "registry" / "topics"
 

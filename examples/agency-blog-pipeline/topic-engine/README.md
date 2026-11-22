@@ -40,10 +40,13 @@ python scripts/append_ledger.py --engine . --topic-id TOP-0001 \
     --event approved --actor harsh --run-id REVIEW-2026-1122 \
     --detail "Approved as proposed"
 
-# 4. Export every approved, not-yet-exported topic to the pipeline's source-data CSV
+# 4. Export every approved, not-yet-exported topic to the pipeline's source-data CSV,
+#    plus the pipeline's own copy of the client's voice/services (brand-profile.md)
 python scripts/export_topics_csv.py --engine . \
-    --out ../pipeline/clienta-blog-pipeline/source-data/clienta_topics.csv \
+    --out ../pipeline/clienta-blog-pipeline/source-data/topics.csv \
     --run-id EXP-2026-1122
+python scripts/export_brand_profile.py --engine . \
+    --out ../pipeline/clienta-blog-pipeline/source-data/brand-profile.md
 
 python -m unittest discover -s scripts/tests   # regression tests
 ```
@@ -53,7 +56,7 @@ python -m unittest discover -s scripts/tests   # regression tests
 Step 1 only needs to happen once, unless the client's site changes
 significantly. A later run can skip straight to proposing a fresh batch
 of topics against the existing `site-profile.md` and the pipeline's
-current `clienta_topics.csv` (so it doesn't re-propose something already
+current `topics.csv` (so it doesn't re-propose something already
 exported). That's what makes this "optional in subsequent runs, a
 prerequisite for the first" in practice: the pipeline never has to wait
 on the engine running again, and the engine, when it does run again, only
@@ -77,8 +80,15 @@ topic-engine/
 │   ├── site-facts.json           Mechanical extraction (scripts/analyze_site.py)
 │   └── site-profile.md           Qualitative read — written by the agent, not a script
 └── scripts/                      analyze_site, next_topic_id, append_ledger,
-                                   fold_ledger, export_topics_csv, validate_registry;
+                                   fold_ledger, export_topics_csv,
+                                   export_brand_profile, validate_registry;
                                    tests/
+```
+
+`../client-config.yaml` (the example root, a sibling of this folder and
+of `pipeline/<slug>-blog-pipeline/`) is where this client's name, slug,
+services, and brand palette actually live — nothing here hardcodes one
+of those (`_common.py`'s `load_client_config`).
 ```
 
 ## What's cut from the full topic-engine pattern, and why

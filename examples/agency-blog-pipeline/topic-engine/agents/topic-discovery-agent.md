@@ -40,6 +40,19 @@ writes to the blog pipeline directly — that happens only via
   summary, grounded in the actual extracted text, never generic
   flattery ("friendly and professional" said of every client is not a
   voice read). This is mandatory before any topic may be proposed.
+  **Use exactly the headings `## Industry` and `## Voice and
+  personality`** for those two sections (any other content/sections are
+  free-form) — `scripts/export_brand_profile.py` extracts these two by
+  heading text, mechanically, to build the pipeline's
+  `source-data/brand-profile.md`; a different heading breaks that
+  extraction with no silent fallback. The Voice section must include at
+  least one or two concrete example phrasings (something this client's
+  own site actually says, or a prefer-this/avoid-that pair grounded in
+  it) — "friendly and professional" said of every client is not a voice
+  read, and the pipeline's Content Agent
+  (`../pipeline/<blog-pipeline>/agents/content-agent.md`) is deliberately
+  written with no client-specific voice facts of its own, so this section
+  is the only place that specificity lives.
 - One `registry/topics/TOP-####.md` per proposed topic
   (`templates/topic.template.md`), plus one `proposed` ledger row per
   topic via `append_ledger.py`.

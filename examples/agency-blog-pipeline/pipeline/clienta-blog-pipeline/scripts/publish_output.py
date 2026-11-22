@@ -32,6 +32,8 @@ from pathlib import Path
 
 import yaml
 
+from _client_config import load_client_config
+
 PIPELINE_DIR = Path(__file__).resolve().parent.parent
 FRONTMATTER_RE = re.compile(r"\A---\s*\n(.*?)\n---\s*\n?(.*)\Z", re.DOTALL)
 
@@ -39,7 +41,7 @@ PAGE_SHELL = """<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>{title} — ClientA</title>
+<title>{title} — {client_name}</title>
 </head>
 <body>
 <nav>Home | Services | About | Blog | Contact</nav>
@@ -105,12 +107,14 @@ def slug_for(item_id: str) -> str:
     return item_id.lower()
 
 
-def publish_local_files(pipeline_dir: Path, item_id: str, fm: dict, html: str, backlink: str | None) -> dict:
+def publish_local_files(pipeline_dir: Path, item_id: str, fm: dict, html: str, backlink: str | None,
+                         client_name: str) -> dict:
     out_dir = pipeline_dir / "output" / item_id
     out_dir.mkdir(parents=True, exist_ok=True)
 
     title = fm.get("working_title") or fm.get("title") or item_id
-    (out_dir / "post.html").write_text(PAGE_SHELL.format(title=title, body=html), encoding="utf-8")
+    (out_dir / "post.html").write_text(
+        PAGE_SHELL.format(title=title, body=html, client_name=client_name), encoding="utf-8")
 
     hero_src = pipeline_dir / fm.get("manifest", [None])[0] if fm.get("manifest") else None
     hero_dest = None
@@ -143,7 +147,8 @@ def run_git(repo_dir: Path, *args: str) -> str:
     return result.stdout.strip()
 
 
-def publish_git_branch(pipeline_dir: Path, item_id: str, fm: dict, html: str, backlink: str | None) -> dict:
+def publish_git_branch(pipeline_dir: Path, item_id: str, fm: dict, html: str, backlink: str | None,
+                        client_name: str) -> dict:
     repo_dir = pipeline_dir / "demo-site-repo"
     if not repo_dir.exists():
         raise FileNotFoundError(
@@ -162,7 +167,7 @@ def publish_git_branch(pipeline_dir: Path, item_id: str, fm: dict, html: str, ba
     title = fm.get("working_title") or fm.get("title") or item_id
     slug = slug_for(item_id)
     post_path = repo_dir / "blog" / f"{slug}.html"
-    post_path.write_text(PAGE_SHELL.format(title=title, body=html), encoding="utf-8")
+    post_path.write_text(PAGE_SHELL.format(title=title, body=html, client_name=client_name), encoding="utf-8")
 
     hero_dest = None
     manifest = fm.get("manifest") or []
@@ -214,6 +219,7 @@ def main() -> int:
 
     config = load_config(args.pipeline)
     output_mode = config.get("output_mode", "git_branch")
+    client_name = load_client_config(args.pipeline).get("client", {}).get("name", "")
 
     fm, body = approved_record(args.pipeline, args.item_id)
     section = what_was_drafted_section(body)
@@ -221,9 +227,9 @@ def main() -> int:
     backlink = backlink_edit(section)
 
     if output_mode == "local_files":
-        receipt = publish_local_files(args.pipeline, args.item_id, fm, html, backlink)
+        receipt = publish_local_files(args.pipeline, args.item_id, fm, html, backlink, client_name)
     elif output_mode == "git_branch":
-        receipt = publish_git_branch(args.pipeline, args.item_id, fm, html, backlink)
+        receipt = publish_git_branch(args.pipeline, args.item_id, fm, html, backlink, client_name)
     else:
         print(f"error: unknown output_mode {output_mode!r}", file=sys.stderr)
         return 1

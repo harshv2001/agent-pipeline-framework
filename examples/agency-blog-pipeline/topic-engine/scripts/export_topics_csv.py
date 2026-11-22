@@ -16,7 +16,7 @@ already started working from.
 
 Usage:
     python scripts/export_topics_csv.py --engine . \\
-        --out ../pipeline/clienta-blog-pipeline/source-data/clienta_topics.csv \\
+        --out ../pipeline/<slug>-blog-pipeline/source-data/topics.csv \\
         --actor "topic-discovery-agent v1" --run-id EXP-2026-1122
 """
 from __future__ import annotations

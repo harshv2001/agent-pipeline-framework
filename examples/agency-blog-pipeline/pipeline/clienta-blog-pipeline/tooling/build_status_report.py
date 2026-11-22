@@ -24,7 +24,7 @@ from pathlib import Path
 import yaml
 
 PIPELINE_DIR = Path(__file__).resolve().parent.parent
-SOURCE_CSV = PIPELINE_DIR / "source-data" / "clienta_topics.csv"
+SOURCE_CSV = PIPELINE_DIR / "source-data" / "topics.csv"
 OUT_CSV = PIPELINE_DIR / "status-report.csv"
 
 FRONTMATTER_RE = re.compile(r"\A---\s*\n(.*?)\n---\s*\n?(.*)\Z", re.DOTALL)
@@ -32,7 +32,10 @@ FRONTMATTER_RE = re.compile(r"\A---\s*\n(.*?)\n---\s*\n?(.*)\Z", re.DOTALL)
 # One- or two-sentence, genuinely informative notes -- what happened, not
 # just the new status (spec.md's own convention, copied from the Viksya
 # pipeline this is modeled on). Add an entry here for every item whose
-# status changes, same discipline either pipeline uses.
+# status changes, same discipline either pipeline uses. Starts empty for
+# every new client instance -- this is hand-maintained data, not something
+# setup_client.py generates. (This ClientA instance's own entry below was
+# added by hand after generation, same as any other client would.)
 KNOWN_COMMENTS: dict[str, str] = {
     "TOP-0001": "Fully worked example for this repo: drafted, reviewed, approved, and "
                 "staged to a demo git branch -- see stage-store/08-executed/TOP-0001.md.",

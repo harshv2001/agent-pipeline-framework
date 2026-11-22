@@ -24,10 +24,15 @@ the base framework's own pipeline-agnostic diagrams in
 
 ```
 agency-blog-pipeline/
-├── sample-client-site/     ClientA's site (fixture) -- what gets analyzed
+├── client-config.yaml       ClientA's values -- every script below reads this, never hardcodes
+├── sample-client-site/      ClientA's site (fixture) -- what gets analyzed
 ├── topic-engine/            Decides WHAT to write about -- site analysis -> topics CSV
-└── pipeline/
-    └── clienta-blog-pipeline/   Decides HOW to write it -- the 10-stage governed pipeline
+├── pipeline/
+│   └── clienta-blog-pipeline/   Decides HOW to write it -- the 10-stage governed pipeline
+├── setup_client.py          Generates a fresh, empty instance for a real client (no AI involved)
+├── _templates/              What setup_client.py renders config.yaml/spec.md/logic.md from
+├── setup-agency-client/     Claude Code Skill wrapping setup_client.py as a conversation
+└── WALKTHROUGH.md           Step-by-step that works with any AI assistant, or none
 ```
 
 This mirrors how an actual agency engagement works: you don't get a
@@ -38,44 +43,16 @@ the same logic. The topic engine is the optional, lighter-weight piece
 governed framework (`docs/01-governance-rules.md`) that every draft goes
 through regardless of where its topic came from.
 
-## Run it yourself, start to finish
+## Run it yourself
 
-```bash
-cd examples/agency-blog-pipeline
-
-# 1. Topic engine: analyze the site, propose topics, approve some, export to CSV
-cd topic-engine
-pip install -r scripts/requirements.txt
-python scripts/analyze_site.py --engine .
-#   -> then the Topic Discovery Agent reads site-profile/site-facts.json
-#      plus the raw site and writes site-profile/site-profile.md (already
-#      done for you in this checkout -- see topic-engine/README.md to redo
-#      it, or to run a later, optional refresh batch)
-python scripts/fold_ledger.py --engine .            # regenerate registry/registry.csv
-python scripts/validate_registry.py --engine .
-python scripts/export_topics_csv.py --engine . \
-    --out ../pipeline/clienta-blog-pipeline/source-data/clienta_topics.csv \
-    --run-id EXP-$(date +%Y%m%d)
-
-# 2. Blog pipeline: already has one fully worked item (TOP-0001) committed
-#    in its stage-store -- inspect it directly:
-cd ../pipeline/clienta-blog-pipeline
-cat stage-store/08-executed/TOP-0001.md
-
-# To run a NEW item through the pipeline yourself (TOP-0002, 0003, or 0004
-# are approved and exported but not yet picked up -- see status-report.csv):
-#   - write a run-requests/pending/ file (templates/run-request.template.md,
-#     base framework) with scope_value: id=TOP-0002
-#   - dispatch base-framework/SKILL.md's discovery run, which walks the
-#     Source -> Triage -> Content -> Agent-Review -> Human-Liaison chain
-#   - review stage-store/05-pending-human-review/TOP-0002.md, then:
-python ../../../../scripts/advance_stage.py --pipeline . --approve TOP-0002
-python ../../../../scripts/advance_stage.py --pipeline . --verify-manifest TOP-0002
-python scripts/init_demo_site_repo.py   # first time only -- stands in for ClientA's real site repo
-python scripts/publish_output.py --item-id TOP-0002
-python ../../../../scripts/advance_stage.py --pipeline . --move TOP-0002 --from 06-approved --to 08-executed --actor "publisher-agent v1" --detail "staged"
-python tooling/build_status_report.py
-```
+See **[`WALKTHROUGH.md`](WALKTHROUGH.md)** — it replaces what used to be
+a single bash block here. Every step there is marked `[TERMINAL]` (a
+literal, copy-pasteable command, no shell-specific syntax) or
+`[ANY AI CHAT]` (paste a given prompt into whichever assistant you
+already use — Claude, Codex, ChatGPT, Gemini, or Claude Code — and save
+its reply to the named file). If you use Claude Code specifically,
+[`setup-agency-client/SKILL.md`](setup-agency-client/SKILL.md)
+automates the onboarding conversation end to end instead.
 
 See [`topic-engine/README.md`](topic-engine/README.md) and
 [`pipeline/clienta-blog-pipeline/spec.md`](pipeline/clienta-blog-pipeline/spec.md)
@@ -93,7 +70,7 @@ So you can see a complete result without running anything first:
   (with one flagged-but-not-blocking note), packaged, approved, and staged
   to a local git branch standing in for ClientA's real site repo. `TOP-0002`,
   `TOP-0003`, `TOP-0004` are approved and exported to
-  `source-data/clienta_topics.csv` but not yet picked up — a realistic
+  `source-data/topics.csv` but not yet picked up — a realistic
   backlog, not a failure. `pipeline/clienta-blog-pipeline/status-report.csv`
   shows all four at a glance.
 
@@ -105,17 +82,47 @@ it to see exactly what a real publish would produce.
 
 ## Adapting this for a real client
 
-1. Find-and-replace `ClientA` → your client's actual name throughout
-   `topic-engine/config/engine.yaml`,
-   `pipeline/clienta-blog-pipeline/source-data/clienta_brand_profile.md`,
-   and `pipeline/clienta-blog-pipeline/agents/content-agent.md`.
-2. Replace `sample-client-site/` with a real export of the client's actual
-   site (`topic-engine/scripts/analyze_site.py`'s docstring explains what
-   it needs — static, server-rendered HTML; export a JS-heavy site first).
-3. Re-run the bootstrap (`topic-engine/scripts/analyze_site.py`, then have
-   the Topic Discovery Agent write a fresh `site-profile.md` and propose
-   real topics against the real site).
-4. Point `pipeline/clienta-blog-pipeline/config.yaml`'s
+**Don't find-and-replace `ClientA` by hand.** Earlier versions of this
+README said to edit three files; the actual count is closer to 40, once
+you count Python scripts that used to hardcode a service list or a
+palette. That's exactly the kind of manual step that's easy to get
+*mostly* right and never notice the one spot you missed. Every script in
+this example now reads a client's name, services, and brand colors from
+one file, `client-config.yaml`, instead — so adapting this is a generated
+step, not a search-and-hope one:
+
+```bash
+python setup_client.py --name "Acme Bookkeeping" --domain acme.com \
+    --service "Bookkeeping|bookkeeping|/services/bookkeeping" \
+    --service "Tax Prep|tax-prep|/services/tax-prep" \
+    --out ../acme-blog-pipeline
+```
+
+This generates a fresh, empty instance — no `ClientA` seed data carried
+over — with `topic-engine/` and `pipeline/acme-bookkeeping-blog-pipeline/`
+both reading the new `client-config.yaml` it writes. Run
+`python setup_client.py --help` for every option, including
+`--framework-root` (places the pipeline half directly into a clone of
+this repo's `pipelines/` directory, so it can use `scripts/advance_stage.py`
+and `base-framework/SKILL.md` immediately — the way a pipeline on this
+framework actually runs). **Put the output somewhere other than inside
+this public repository** — the generated instance is meant to hold a
+real client's data, which shouldn't live inside an open-source template
+project.
+
+From there:
+
+1. Replace `<new instance>/sample-client-site/` with a real export of
+   the client's actual site (`topic-engine/scripts/analyze_site.py`'s
+   docstring explains what it needs — static, server-rendered HTML;
+   export a JS-heavy site first).
+2. Run the bootstrap (`topic-engine/scripts/analyze_site.py`, then have
+   an AI assistant act as the Topic Discovery Agent and write a real
+   `site-profile.md` and propose real topics against the real site) —
+   see [`WALKTHROUGH.md`](WALKTHROUGH.md) for the exact sequence,
+   or [`setup-agency-client/SKILL.md`](setup-agency-client/SKILL.md) if
+   you're in Claude Code.
+3. Point the new instance's `config.yaml`'s
    `output_destinations[0].connector_ref` at the client's actual site
    repo (`git:github.com/...`) instead of the local
    `./demo-site-repo` stand-in, and set up whatever credential
@@ -123,11 +130,12 @@ it to see exactly what a real publish would produce.
    on a git-based static site, leave `output_mode: local_files` and hand
    the generated files to their CMS instead (`spec.md`, "Output
    Destinations").
-5. Replace `scripts/generate_hero_svg.py`'s placeholder output with real
+4. Replace `scripts/generate_hero_svg.py`'s placeholder output with real
    image generation once you have a dependency/API budget for it — it
    exists only so this example runs with nothing but Python.
 
 Everything else — the ten-stage governance, the review policy, the
-run-request filters, the status-report discipline — needs no change per
-client; that's the part of this framework that's the same for every
-pipeline.
+run-request filters, the status-report discipline, every script — needs
+no per-client edit at all; that's the part of this framework that's the
+same for every pipeline, and it's also why `setup_client.py` can copy it
+verbatim instead of templating it.

@@ -1,9 +1,9 @@
-engine_name: clientA-topic-engine
+engine_name: clienta-topic-engine
 extends_version: "1.0"   # this example's engine/pipeline contract version, not the base framework's
 
 client:
   name: ClientA
-  site_source: ../sample-client-site   # bundled fixture; point this at a real export/crawl of a live client site to use this for an actual engagement
+  site_source: ../sample-client-site   # point this at a real export/crawl of the live client site for an actual engagement
   industry_hint: null   # optional — set this to skip inference; otherwise the agent infers it from the site read
 
 bootstrap:
@@ -13,7 +13,7 @@ bootstrap:
 feeds_pipeline:
   name: clienta-blog-pipeline
   path: ../pipeline/clienta-blog-pipeline
-  topics_csv_ref: ../pipeline/clienta-blog-pipeline/source-data/clienta_topics.csv
+  topics_csv_ref: ../pipeline/clienta-blog-pipeline/source-data/topics.csv
 
 registry:
   topics_dir: ./registry/topics

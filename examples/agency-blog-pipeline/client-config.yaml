@@ -1,0 +1,31 @@
+# The single place every client-specific value lives. topic-engine/ and
+# pipeline/<slug>-blog-pipeline/ both read this file (never hardcode a
+# client's name, services, or brand colors in a script) -- this is what
+# setup_client.py writes for you, and the only file (besides the actual
+# site export) you need to touch to point this whole example at a new
+# client. See ../../docs/09-directory-layout.md style note in
+# setup_client.py's docstring for why this lives at the example root,
+# a sibling of both topic-engine/ and pipeline/.
+
+client:
+  name: ClientA          # display name -- used in page titles, CTAs, docs
+  slug: clienta          # lowercase, hyphen/underscore-free token used in
+                          # folder and git-branch names (pipeline/<slug>-blog-pipeline,
+                          # stage/insights-{item_id} stays item-id based, not slug-based)
+  domain: clienta.com    # informational only, shown in generated docs
+
+services:
+  - slug: bookkeeping
+    name: Monthly Bookkeeping
+    url: /services/bookkeeping
+  - slug: cash-flow-forecasting
+    name: Cash Flow Forecasting
+    url: /services/cash-flow-forecasting
+  - slug: fractional-cfo
+    name: Fractional CFO Advisory
+    url: /services/fractional-cfo
+
+brand:
+  navy: "#1B2A41"
+  parchment: "#F7F4EE"
+  accent: "#2E8B7B"

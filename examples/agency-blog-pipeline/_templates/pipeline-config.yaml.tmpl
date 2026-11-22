@@ -1,0 +1,44 @@
+pipeline_name: {{CLIENT_SLUG}}-blog-pipeline
+extends_version: "1.0"
+
+source:
+  connector_type: filesystem
+  connector_ref: pipeline-local-source-data
+  access: read_only
+  scope_source: runtime   # which rows become this run's items is a per-run filter -- see spec.md "Requesting a run"
+  scope: "source-data/topics.csv -- topics exported by ../../topic-engine/scripts/export_topics_csv.py. This file, this path, nothing else -- the envelope never changes without a reviewed config edit. The specific row(s) a given run acts on come from run-requests/ (docs/05-execution-model.md), never a value this pipeline decides for itself."
+  poll_frequency_minutes: 1440   # informational -- no scheduled task exists yet; runs are manual/on-demand
+
+decision:
+  logic_ref: ./logic.md
+  max_review_cycles: 2
+  escalate_on_ambiguous: true
+
+# Which of output_destinations below is active for a run. This is the one
+# switch an agency changes per client -- see spec.md "Output Destinations".
+output_mode: git_branch   # git_branch (default) | local_files
+
+output_destinations:
+  - name: {{CLIENT_SLUG}}-site-staging
+    connector_type: connector
+    connector_ref: "git:./demo-site-repo"   # a local repo this example sets up via scripts/init_demo_site_repo.py -- point this at the real client repo (e.g. git:github.com/your-github-org/your-client-website) for an actual engagement
+    access: write
+    action_scope: commit_staging_blog_post   # active when output_mode: git_branch -- see spec.md Output Destinations for the exact bounded file set this covers
+  - name: {{CLIENT_SLUG}}-local-output
+    connector_type: filesystem
+    connector_ref: ./output
+    access: write
+    action_scope: write_post_files   # active when output_mode: local_files
+
+review:
+  agent_review_policy_ref: ./spec.md#review-policy
+
+schedule:
+  discovery_run_trigger_id: not-yet-scheduled
+  publish_run_trigger_id: not-yet-scheduled
+
+notifications:
+  include_in_digest: true
+
+audit:
+  retention: indefinite

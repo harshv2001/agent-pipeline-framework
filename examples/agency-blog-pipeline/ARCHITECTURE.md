@@ -23,6 +23,7 @@ configurable output-mode branch.
 ```mermaid
 flowchart TD
     SITE["sample-client-site/<br/>ClientA fixture site (static HTML)"]
+    CONFIG["client-config.yaml<br/>name, slug, services, brand palette —<br/>the ONLY place these are ever written"]
 
     subgraph TOPICENG["topic-engine/ — scaled-down ledger engine (docs/11-topic-engine.md pattern)"]
         ANALYZE["scripts/analyze_site.py<br/>mechanical extraction only"]
@@ -33,6 +34,7 @@ flowchart TD
         LEDGER["registry/ledger.csv<br/>append-only: proposed → approved/rejected → exported"]
         REGCSV["registry/registry.csv<br/>generated view (fold_ledger.py)"]
         EXPORT["scripts/export_topics_csv.py<br/>idempotent, additive"]
+        EXPORTBRAND["scripts/export_brand_profile.py<br/>extracts Industry/Voice sections by heading"]
     end
 
     HUMAN1(["Human — approves or rejects each topic"])
@@ -45,12 +47,13 @@ flowchart TD
     LEDGER -- "status: approved,<br/>not yet exported" --> EXPORT
 
     subgraph HANDOFF["The engine's one write into the pipeline"]
-        CSV["pipeline/clienta-blog-pipeline/<br/>source-data/clienta_topics.csv"]
-        BRAND["source-data/clienta_brand_profile.md<br/>(copied once, so the pipeline<br/>never has to re-read the engine)"]
+        CSV["pipeline/clienta-blog-pipeline/<br/>source-data/topics.csv"]
+        BRAND["source-data/brand-profile.md<br/>(copied once, so the pipeline<br/>never has to re-read the engine)"]
     end
 
     EXPORT -- "new rows only —<br/>never touches an existing row" --> CSV
-    PROFILE -. "copied at export time" .-> BRAND
+    PROFILE -. "## Industry + ## Voice sections<br/>extracted, services/palette from client-config.yaml" .-> EXPORTBRAND
+    EXPORTBRAND --> BRAND
 
     subgraph PIPELINE["pipeline/clienta-blog-pipeline/ — the ten base stages, unmodified"]
         STAGES["00-source-manifest → 01 → … → 08-executed → 09-audit-log<br/>(base-framework agent roles, see docs/diagrams/01)"]
@@ -65,6 +68,10 @@ flowchart TD
 
     PUBLISH["scripts/publish_output.py<br/>reads config.yaml's output_mode"]
     STAGES -- "06-approved, hash-verified<br/>(advance_stage.py --verify-manifest)" --> PUBLISH
+
+    CONFIG -. "services, palette" .-> SVG
+    CONFIG -. "display name" .-> PUBLISH
+    CONFIG -. "services, palette" .-> EXPORTBRAND
 
     subgraph OUT["Output — config.yaml: output_mode (one value picks the active destination)"]
         GITMODE["git_branch (default)<br/>demo-site-repo/ → stage/insights-{item_id}<br/>(local stand-in for the client's real site repo)"]
@@ -96,7 +103,7 @@ sequenceDiagram
     Eng->>Eng: analyze_site.py → site-facts.json
     Eng->>Eng: Topic Discovery Agent writes site-profile.md, proposes TOP-0001..TOP-0005
     H->>Eng: approve TOP-0001..TOP-0004; reject TOP-0005
-    Eng->>Repo: export_topics_csv.py → source-data/clienta_topics.csv (4 rows)
+    Eng->>Repo: export_topics_csv.py → source-data/topics.csv (4 rows)
 
     Note over Repo: run-request scope_value=id=TOP-0001
     Repo->>Repo: Source Agent → 01-raw-metadata/TOP-0001.md
@@ -133,6 +140,10 @@ sequenceDiagram
   local-mode files to a real CMS) is a human act outside both diagrams —
   same boundary `docs/03-stage-store-model.md` draws for every pipeline
   built on this framework.
+- `client-config.yaml`'s dashed arrows are the whole reason adapting this
+  for a new client (`../README.md`, "Adapting this for a real client",
+  or `setup_client.py`) never touches a script — every client-specific
+  fact flows from that one file, read at runtime, never hardcoded.
 
 ## Keeping this in sync
 
