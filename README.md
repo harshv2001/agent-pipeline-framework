@@ -20,9 +20,10 @@ source, its decision logic, its output destinations, its schedule. See
 [`docs/02-inheritance-model.md`](docs/02-inheritance-model.md) for exactly
 how that works and what a pipeline is and isn't allowed to override.
 
-This repository ships the base framework only — `base-framework/`, `docs/`,
-`templates/`, `scripts/`. It does not ship any concrete pipeline; `pipelines/`
-is where yours goes once you build one (`docs/10-building-a-new-pipeline.md`).
+This repository ships the base framework — `base-framework/`, `docs/`,
+`templates/`, `scripts/` — plus one complete, runnable worked example under
+`examples/` (see "Layout" below); `pipelines/` itself stays empty, ready for
+yours (`docs/10-building-a-new-pipeline.md`).
 
 ## Why this exists
 
@@ -94,25 +95,43 @@ agent-pipeline-framework/
 │                            approve/reject/promote/check-completeness/verify-manifest,
 │                            the review-queue tools), the run-request consumer;
 │                            tests/ holds their unittest suite
-└── pipelines/               Your concrete pipelines go here (empty in this repo)
+├── examples/
+│   └── agency-blog-pipeline/   Complete worked example — a digital agency's
+│                                client-blog pipeline, with a topic-engine
+│                                instance upstream of it and one item carried
+│                                through all ten stages for real. Start here
+│                                if you want to see it running before reading
+│                                the docs top to bottom.
+└── pipelines/               Your own concrete pipelines go here (empty in this repo)
 ```
 
 An optional upstream component — something that decides *what* a pipeline
 should look for next and feeds it a run-request — is a supported pattern,
-documented as a contract in `docs/11-topic-engine.md`, with no
-implementation shipped here; build it to fit your own source and config.
+documented as a contract in `docs/11-topic-engine.md`. A generic, runnable
+instance of it ships in `examples/agency-blog-pipeline/topic-engine/`;
+build your own to fit your own source and config, using that as a starting
+shape.
 
 ## Start here
 
-0. For a quick visual orientation before reading prose, see
+0. **Want to see it running before reading anything?**
+   [`examples/agency-blog-pipeline/`](examples/agency-blog-pipeline/) is a
+   complete, runnable example — a digital agency's client-blog pipeline,
+   plus an upstream topic-engine instance, with one item already carried
+   through all ten stages and staged for real. Its own README walks the
+   whole thing end to end, and its
+   [`ARCHITECTURE.md`](examples/agency-blog-pipeline/ARCHITECTURE.md) has
+   that example's own diagrams (separate from the framework-level ones
+   below, which don't change per pipeline).
+1. For a quick visual orientation before reading prose, see
    `docs/diagrams/00-high-level-architecture.md` (the five always-present
    components) and `docs/diagrams/01-detailed-architecture.md` (every
    stage, agent, script, and run sequence).
-1. Read `docs/00-overview-and-philosophy.md` through `docs/04-agent-roles.md`
+2. Read `docs/00-overview-and-philosophy.md` through `docs/04-agent-roles.md`
    to understand the model.
-2. Read `docs/10-building-a-new-pipeline.md` for the worked example and the
-   step-by-step of extending the base into a real pipeline.
-3. Run `scripts/scaffold_pipeline.py <name>` to generate a new pipeline
+3. Read `docs/10-building-a-new-pipeline.md` for the step-by-step of
+   extending the base into a real pipeline of your own.
+4. Run `scripts/scaffold_pipeline.py <name>` to generate a new pipeline
    folder from the templates, then fill in `spec.md`, `logic.md`, and
    `config.yaml` — or hand a natural-language brief to the
    `pipeline-builder` skill (`base-framework/pipeline-builder/SKILL.md`) to
@@ -124,10 +143,13 @@ This base framework was extracted from a private production system: a
 concrete pipeline built on it has taken real content through both review
 gates to a staged, then promoted, published page, across multiple scheduled
 runs. What's in this repository is the generic half of that system —
-governance rules, stage-store model, agent contracts, scripts — with every
-pipeline-specific implementation (source, brand voice, destination, any
-upstream topic-sourcing component) kept out, since those are specific to
-whoever is running them, not part of the framework itself.
+governance rules, stage-store model, agent contracts, scripts — with that
+original system's own pipeline-specific implementation (its actual source,
+brand voice, destination, and upstream topic-sourcing component) kept
+private, since those are specific to whoever is running them, not part of
+the framework itself. In its place, `examples/agency-blog-pipeline/` ships
+a second, generic, fictional implementation of the same shape — openly, in
+this repo — so the framework isn't only described in the abstract.
 
 Two lifecycle rules worth knowing before you operate it
 (`docs/03-stage-store-model.md`, "Immutability by stage"):

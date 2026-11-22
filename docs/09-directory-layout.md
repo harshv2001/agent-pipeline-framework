@@ -1,7 +1,9 @@
 # 09 — Directory Layout Reference
 
-The full repository layout, as delivered and as it grows once pipelines are
-added:
+The full repository layout, as it grows once you add your own pipelines
+(and, optionally, your own `topic-engine/` instance — see the note after
+the tree below; this repo itself ships a generic worked example of both
+under `examples/agency-blog-pipeline/`, not at these top-level paths):
 
 ```
 pipeline-framework/                      Repo root
@@ -46,7 +48,9 @@ pipeline-framework/                      Repo root
 │   ├── review-packet.template.md
 │   ├── agent-override.template.md
 │   └── audit-log-entry.template.md
-├── topic-engine/                        Optional upstream component (docs/11-topic-engine.md)
+├── topic-engine/                        Optional upstream component (docs/11-topic-engine.md) --
+│                                         YOUR OWN instance goes here if you build one; this repo
+│                                         doesn't ship one at this path (see note below the tree)
 │   ├── ARCHITECTURE.md                  Design + the engine <-> pipeline contract
 │   ├── README.md, SKILL.md, agents/, schema/, templates/
 │   ├── config/engine.yaml               Caps, kill switch, surface -> pipeline routes
@@ -62,6 +66,10 @@ pipeline-framework/                      Repo root
 │   │                                     --pending / --cleanup-queue / --check-completeness / --verify-manifest
 │   ├── consume_run_request.py           Resolves/consumes a runtime scope (docs/05)
 │   └── tests/                           unittest suite for the scripts above
+├── examples/
+│   └── agency-blog-pipeline/            Shipped worked example: a generic topic-engine
+│                                         instance plus a matching pipeline, fully seeded
+│                                         and runnable -- see its own README
 └── pipelines/
     └── <name>/                          One folder per concrete pipeline
         ├── spec.md

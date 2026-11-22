@@ -2,3 +2,7 @@ __pycache__/
 *.pyc
 .DS_Store
 node_modules/
+
+# examples/agency-blog-pipeline: generated local state, not source
+examples/agency-blog-pipeline/pipeline/clienta-blog-pipeline/demo-site-repo/
+examples/agency-blog-pipeline/pipeline/clienta-blog-pipeline/output/

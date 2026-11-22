@@ -101,3 +101,9 @@ changes — a new top-level component, a new external touchpoint, or a
 change to which direction data/control flows. Day-to-day pipeline
 additions (a new `pipelines/<name>/`) don't change this diagram at all,
 since it's drawn at the level of the framework, not any one pipeline.
+
+Looking for a diagram of a specific pipeline's own wiring instead? See
+[`../../examples/agency-blog-pipeline/ARCHITECTURE.md`](../../examples/agency-blog-pipeline/ARCHITECTURE.md)
+for that example's topic-engine → pipeline handoff and output-mode
+branch — pipeline-specific diagrams like that one live alongside the
+pipeline they describe, not here.

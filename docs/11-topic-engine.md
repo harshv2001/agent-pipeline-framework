@@ -10,11 +10,18 @@ human can write a run-request by hand, as this pattern's first real
 implementation did before an engine was built.
 
 This repository ships the interface below — what any such engine must
-assume about a pipeline, and why — not a concrete `topic-engine/`
-implementation; one was built against a specific brand's product catalog
-and kept with that pipeline's own private configuration, same as
-`pipelines/` itself (`docs/09-directory-layout.md`). Use this page as the
-contract to build your own against.
+assume about a pipeline, and why. The first such engine was built against
+a specific brand's product catalog and kept with that pipeline's own
+private configuration, same as `pipelines/` itself
+(`docs/09-directory-layout.md`) — not shipped here. A second, generic
+worked instance **is** shipped, under
+[`examples/agency-blog-pipeline/topic-engine/`](../examples/agency-blog-pipeline/topic-engine/):
+a deliberately smaller-scope implementation (no multi-surface routing, no
+daily dispatch loop — see that folder's own README for exactly what's cut
+and why) built for a single CSV-fed pipeline rather than a continuously
+running discovery pipeline. Use this page as the contract either way; the
+example shows one concrete, runnable shape of it, diagrammed in
+[`examples/agency-blog-pipeline/ARCHITECTURE.md`](../examples/agency-blog-pipeline/ARCHITECTURE.md).
 
 ## What it does, in one paragraph
 

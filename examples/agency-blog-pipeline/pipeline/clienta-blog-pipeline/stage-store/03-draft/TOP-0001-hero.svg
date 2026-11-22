@@ -1,0 +1,15 @@
+<svg viewBox="0 0 1600 900" xmlns="http://www.w3.org/2000/svg">
+  <rect x="0" y="0" width="1600" height="900" fill="#F7F4EE"/>
+  <rect x="0" y="0" width="1600" height="16" fill="#2E8B7B"/>
+  <rect x="0" y="884" width="1600" height="16" fill="#2E8B7B"/>
+  <circle cx="1420" cy="180" r="140" fill="#1B2A41" opacity="0.08"/>
+  <circle cx="1500" cy="700" r="100" fill="#2E8B7B" opacity="0.15"/>
+  <rect x="120" y="120" width="90" height="10" fill="#2E8B7B"/>
+  <text x="120" y="90" font-family="Helvetica, Arial, sans-serif" font-size="28"
+        letter-spacing="2" fill="#2E8B7B">CASH FLOW FORECASTING</text>
+  <text x="120" y="386" font-family="Georgia, serif" font-size="54" font-weight="bold" fill="#1B2A41">What Is a 13-Week Cash</text>
+  <text x="120" y="450" font-family="Georgia, serif" font-size="54" font-weight="bold" fill="#1B2A41">Flow Forecast, and Why Do</text>
+  <text x="120" y="514" font-family="Georgia, serif" font-size="54" font-weight="bold" fill="#1B2A41">Small Businesses Use One?</text>
+  <text x="120" y="800" font-family="Helvetica, Arial, sans-serif" font-size="24"
+        fill="#1B2A41" opacity="0.6">ClientA</text>
+</svg>

@@ -1,0 +1,100 @@
+{
+  "site_source": "D:\\CLAUDE-PIPELINE\\agent-pipeline-framework\\examples\\agency-blog-pipeline\\sample-client-site",
+  "pages": [
+    {
+      "path": "index.html",
+      "title": "ClientA — Bookkeeping and Fractional CFO Help for Small Teams",
+      "headings": [
+        {
+          "level": 1,
+          "text": "Books that make sense. Numbers you can actually use."
+        },
+        {
+          "level": 2,
+          "text": "What we do"
+        },
+        {
+          "level": 2,
+          "text": "Who we work with"
+        },
+        {
+          "level": 2,
+          "text": "Why ClientA"
+        }
+      ],
+      "text": "ClientA — Bookkeeping and Fractional CFO Help for Small Teams Books that make sense. Numbers you can actually use. ClientA is a bookkeeping and fractional CFO service built for small businesses — five to thirty people — who need their numbers straight without hiring a full finance team. We handle the monthly close, the dashboards, and the \"can we afford to hire someone\" conversations, in plain English. No finance degree required, and no jargon you have to Google afterward. What we do Monthly bookkeeping and reconciliation Cash flow forecasting Fractional CFO advisory — board decks, budget planning, hiring-affordability calls Tax-season handoff packages, built for your CPA Who we work with Service businesses, small SaaS teams, and agencies who have outgrown a spreadsheet but aren't ready to hire a full-time CFO. If your bookkeeping currently lives in somebody's \"spare time,\" that's exactly who we built this for. Why ClientA We talk like people, not auditors. Every client gets a dashboard they actually understand and a monthly call where we explain what changed and why — not a PDF you skim and forget.",
+      "word_count": 181
+    },
+    {
+      "path": "about.html",
+      "title": "About ClientA",
+      "headings": [
+        {
+          "level": 1,
+          "text": "About ClientA"
+        },
+        {
+          "level": 2,
+          "text": "How we talk"
+        },
+        {
+          "level": 2,
+          "text": "Our promise"
+        }
+      ],
+      "text": "About ClientA About ClientA ClientA started because our founder kept hearing the same sentence from small-business owners: \"I know my books are a mess, I just don't have time to fix them.\" So we built the thing we wished existed — bookkeeping and finance help that's sized for a five-to-thirty-person company, not a Fortune 500. How we talk Direct, warm, a little informal. We'd rather say \"you're spending more than you're bringing in\" than \"there is a negative variance in operating cash flow.\" Numbers are stressful enough without finance-speak on top. Our promise No surprises at tax time, no mystery line items, and a monthly call where you leave understanding your own business better than when you called in.",
+      "word_count": 119
+    },
+    {
+      "path": "services.html",
+      "title": "Services — ClientA",
+      "headings": [
+        {
+          "level": 1,
+          "text": "Services"
+        },
+        {
+          "level": 2,
+          "text": "Monthly Bookkeeping"
+        },
+        {
+          "level": 2,
+          "text": "Cash Flow Forecasting"
+        },
+        {
+          "level": 2,
+          "text": "Fractional CFO Advisory"
+        }
+      ],
+      "text": "Services — ClientA Services Monthly Bookkeeping We reconcile every account every month, categorize every transaction, and close your books on a schedule — not whenever someone finds time. You get a clean P&L and balance sheet, every month, without asking. Cash Flow Forecasting A rolling 13-week cash forecast so you know, before it's a crisis, whether you can make payroll, take on a new hire, or need to slow down spending this quarter. Fractional CFO Advisory Board-ready decks, budget planning, and the \"should we hire this person\" or \"can we afford this lease\" conversations — the judgment calls a part-time bookkeeper isn't positioned to make.",
+      "word_count": 105
+    }
+  ],
+  "services": [
+    {
+      "slug": "bookkeeping",
+      "url": "/services/bookkeeping",
+      "name": "Monthly Bookkeeping"
+    },
+    {
+      "slug": "cash-flow-forecasting",
+      "url": "/services/cash-flow-forecasting",
+      "name": "Cash Flow Forecasting"
+    },
+    {
+      "slug": "fractional-cfo",
+      "url": "/services/fractional-cfo",
+      "name": "Fractional CFO Advisory"
+    }
+  ],
+  "existing_posts": [
+    {
+      "url": "/blog/how-often-reconcile-books",
+      "title": "How Often Should a Small Business Reconcile Its Books?"
+    },
+    {
+      "url": "/blog/signs-you-need-fractional-cfo",
+      "title": "5 Signs You Need a Fractional CFO (Not a Full-Time One)"
+    }
+  ]
+}
