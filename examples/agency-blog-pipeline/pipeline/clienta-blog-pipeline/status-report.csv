@@ -1,5 +1,5 @@
 ﻿ID,Working Post Title,Priority,Status,Output Location,Comments
-TOP-0001,"What Is a 13-Week Cash Flow Forecast, and Why Do Small Businesses Use One?",1,Staged (preview),stage/insights-top-0001 (blog/top-0001.html),
-TOP-0002,How to Build a 13-Week Cash Flow Forecast (Step by Step),1,Not started,,
+TOP-0001,"What Is a 13-Week Cash Flow Forecast, and Why Do Small Businesses Use One?",1,Staged (preview),stage/insights-top-0001 (blog/top-0001.html),"Fully worked example for this repo: drafted, reviewed, approved, and staged to a demo git branch -- see stage-store/08-executed/TOP-0001.md."
+TOP-0002,How to Build a 13-Week Cash Flow Forecast (Step by Step),1,Rejected,,"First draft passed agent review but the human reviewer asked for more depth via --revise rather than --approve/--reject -- terminal here (revision: true), see TOP-0002-v2 for the redraft and the outcome."
 TOP-0003,The Monthly Bookkeeping Checklist Every Small Business Should Run,2,Not started,,
 TOP-0004,Fractional CFO vs. Full-Time CFO: Cost and When Each Makes Sense,2,Not started,,

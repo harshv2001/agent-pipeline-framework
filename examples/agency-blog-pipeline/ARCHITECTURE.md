@@ -123,8 +123,20 @@ sequenceDiagram
     Pub-->>Repo: receipt → 08-executed/TOP-0001.md (status: staged)
 
     Repo->>Repo: tooling/build_status_report.py → status-report.csv
-    Note over H: TOP-0002..TOP-0004 remain approved + exported,<br/>not yet picked up — a realistic backlog
+    Note over H: TOP-0003..TOP-0004 remain approved + exported,<br/>not yet picked up — a realistic backlog
 ```
+
+`TOP-0002` took a different path, not shown above: the Agent Reviewer
+passed its first draft, but the human reviewer asked for more depth via
+`advance_stage.py --revise` instead of approving it — rejecting the
+first attempt with feedback (`stage-store/07-rejected/TOP-0002.md`) and
+opening `TOP-0002-v2` for the Content Agent's next attempt in the same
+step. The second draft addressed the feedback, passed review again, and
+was approved and staged
+(`stage-store/08-executed/TOP-0002-v2.md`) — the same `03-draft` →
+`04-agent-review` → `05-pending-human-review` loop as diagram 2, just
+entered a second time under a new versioned id rather than a fresh
+`item_id`.
 
 ## Reading these diagrams
 
@@ -132,6 +144,8 @@ sequenceDiagram
   what writes to it" — every node is a real path.
 - **Diagram 2** is the one to check for "what actually happened to
   TOP-0001" — open any `stage-store/*/TOP-0001.md` file alongside it.
+  `TOP-0002`'s revision loop (above) follows the same stages, just with a
+  human-requested detour back to drafting in the middle.
 - The dashed arrows (`-.->`) are read-only or copy-once relationships —
   never a write path back into something upstream. The topic engine never
   writes into the pipeline except the CSV export; the pipeline never

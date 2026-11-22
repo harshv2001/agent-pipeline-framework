@@ -139,18 +139,41 @@ pattern above.
    `python scripts/generate_hero_svg.py --title "..." --service-ref ... --out stage-store/03-draft/TOP-0001-hero.svg`
    **[TERMINAL]**), Agent Reviewer → `04-agent-review`, Human Liaison →
    `05-pending-human-review`.
-3. **[TERMINAL]** You approve:
-   ```
-   python <framework-root>/scripts/advance_stage.py --pipeline . --approve TOP-0001
-   python <framework-root>/scripts/advance_stage.py --pipeline . --verify-manifest TOP-0001
-   ```
-4. **[TERMINAL]** Publish:
+3. Read `stage-store/05-pending-human-review/TOP-0001.md` and decide.
+   You have three options, not two — the middle one is easy to miss:
+   - **[TERMINAL]** Approve as-is:
+     ```
+     python <framework-root>/scripts/advance_stage.py --pipeline . --approve TOP-0001
+     python <framework-root>/scripts/advance_stage.py --pipeline . --verify-manifest TOP-0001
+     ```
+   - **[TERMINAL]** Reject outright, nothing further to come of it:
+     ```
+     python <framework-root>/scripts/advance_stage.py --pipeline . --reject TOP-0001 --reason "..."
+     ```
+   - **[TERMINAL]** Ask for changes — you like the direction but it needs
+     more depth, a different angle, anything the Content Agent should
+     redo. Use `--revise`, **not** `--reject`: plain `--reject` is
+     terminal and produces no new draft.
+     ```
+     python <framework-root>/scripts/advance_stage.py --pipeline . --revise TOP-0001 --reason "needs more depth -- give the topic the word count it deserves"
+     ```
+     This opens a new versioned draft (`TOP-0001-v2`) for the Content
+     Agent's next attempt — repeat step 2 for that id, then come back to
+     this step once it's packaged for review again.
+4. **[TERMINAL]** Publish, once approved — use whichever item id actually
+   reached `06-approved` (plain `TOP-0001`, or `TOP-0001-v2` if you asked
+   for a revision first):
    ```
    python scripts/init_demo_site_repo.py   # first time only, if output_mode: git_branch
    python scripts/publish_output.py --item-id TOP-0001
    python <framework-root>/scripts/advance_stage.py --pipeline . --move TOP-0001 --from 06-approved --to 08-executed --actor "publisher-agent" --detail "staged"
    python tooling/build_status_report.py
    ```
+   `publish_output.py` re-checks the approved body's hash itself before
+   writing anything — it refuses to publish (nonzero exit, no files
+   written) if the approved record's content doesn't match what was
+   actually approved, so a hand-edited `06-approved` file can't slip
+   through here even if you skip step 3's `--verify-manifest`.
 
 Steps 3–4 are genuinely a scripted, orchestrated "publish run" in this
 framework's own design (`docs/diagrams/01-detailed-architecture.md`,

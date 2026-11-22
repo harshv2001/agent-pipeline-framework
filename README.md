@@ -206,19 +206,22 @@ What this framework doesn't do today, stated plainly:
 - **No hosted or managed version.** This is self-hosted — you run it
   inside your own Claude Code / Cowork sessions and your own git
   repository; there's no service to sign up for.
-- **Pre-v1, no tagged release yet.**
+- **Pre-1.0.** [`v0.1.0`](https://github.com/harshv2001/agent-pipeline-framework/releases/tag/v0.1.0)
+  is tagged and marked a pre-release on purpose — this list above is
+  exactly why: it's early, not yet a stable base to build a production
+  dependency on without reading it first.
 
 Roadmap, roughly in priority order:
 
-1. Tag a `v0.1.0` release once this list is as short as it's going to get
-   before one.
-2. A second worked example in a different shape — most likely the
+1. A second worked example in a different shape — most likely the
    republishing case from `docs/10-building-a-new-pipeline.md`, since
    it's the cheapest to build well and demonstrates the lighter-weight
    end of what this framework supports.
-3. A Claude Agent SDK-based orchestrator as an alternative to Claude
+2. A Claude Agent SDK-based orchestrator as an alternative to Claude
    Code's own Skill dispatch, for running this with no Claude Code
    session at all (see "How it runs" above).
+3. Tag a `v1.0.0` once enough of this list has shrunk that "stable" would
+   be an honest word for it.
 
 Known gaps beyond this list are tracked as GitHub issues — contributions
 and discussion welcome.

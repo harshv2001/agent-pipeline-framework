@@ -42,7 +42,16 @@ summarized away.>
 To approve: run `scripts/advance_stage.py --approve <item_id>`, or edit
 `status` above to `approved` and commit.
 
-To reject: run `scripts/advance_stage.py --reject <item_id> --reason "..."`,
-or edit `status` above to `rejected` and add a `reason` field, then commit.
-Note whether this is a terminal rejection or reject-with-feedback (routes
-back to the Content Agent for revision).
+To reject outright, with nothing further to come of it: run
+`scripts/advance_stage.py --reject <item_id> --reason "..."`, or edit
+`status` above to `rejected` and add a `reason` field, then commit. This
+is terminal — no new draft is produced.
+
+To ask for changes instead — you like the direction but this isn't
+publishable as-is (more depth, a different angle, anything the Content
+Agent should redo): run `scripts/advance_stage.py --revise <item_id>
+--reason "..."`, **not** plain `--reject`. This rejects the current
+packet with your feedback attached (still terminal and kept for audit,
+same as any rejection) and opens a new versioned draft
+(`<item_id>-v2`) for the Content Agent's next attempt, in one step. See
+`docs/06-review-and-notification.md`, "Rejection is not a dead end."

@@ -23,6 +23,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import shutil
@@ -74,6 +75,51 @@ def approved_record(pipeline_dir: Path, item_id: str) -> tuple[dict, str]:
     if not path.exists():
         raise FileNotFoundError(f"no approved record for {item_id} at {path}")
     return split_frontmatter(path.read_text(encoding="utf-8"))
+
+
+def verify_approved_content(pipeline_dir: Path, item_id: str, fm: dict, body: str) -> None:
+    """Re-hash the approved body -- and, if one was locked, its manifest
+    files -- against what was locked at approval time, and refuse to
+    publish on any mismatch. This is the script-enforced half of
+    base-framework/agents/publisher-agent.md's Contract step 1
+    (docs/01-governance-rules.md Rule 4), done here directly rather than
+    depending on an operator remembering to run
+    `scripts/advance_stage.py --verify-manifest` as a separate step first
+    -- a human following WALKTHROUGH.md by hand, not an LLM following the
+    Publisher Agent's own contract, is exactly the case that step was
+    never guaranteed to happen before.
+
+    A small, self-contained copy of scripts/advance_stage.py's
+    verify_manifest() (not imported, so this example stays portable on
+    its own, same as every other script here) -- kept in sync with its
+    hashing scheme: sha256 of the UTF-8 body, and, when a manifest is
+    declared, sha256 of "body:<hash>" plus "<rel path>:<file hash>" per
+    listed file (sorted), joined by newlines and hashed again."""
+    locked_content = fm.get("content_hash")
+    if not locked_content:
+        raise SystemExit(f"error: {item_id}: no content_hash locked at approval -- refusing to publish")
+    current_content = hashlib.sha256(body.encode("utf-8")).hexdigest()
+    if current_content != locked_content:
+        raise SystemExit(
+            f"error: {item_id}: CONTENT MISMATCH -- body changed since approval "
+            f"(locked {locked_content[:16]}... but current body hashes to {current_content[:16]}...). "
+            f"Refusing to publish -- reject this record back through review, never edit and republish."
+        )
+
+    locked_manifest = fm.get("manifest_hash")
+    if not locked_manifest:
+        return
+    lines = [f"body:{current_content}"]
+    for rel in sorted(fm.get("manifest") or []):
+        file_path = (pipeline_dir / rel).resolve()
+        lines.append(f"{rel}:{hashlib.sha256(file_path.read_bytes()).hexdigest()}" if file_path.is_file()
+                     else f"{rel}:MISSING")
+    current_manifest = hashlib.sha256("\n".join(lines).encode("utf-8")).hexdigest()
+    if current_manifest != locked_manifest:
+        raise SystemExit(
+            f"error: {item_id}: MANIFEST MISMATCH -- locked {locked_manifest[:16]}... "
+            f"but current state hashes to {current_manifest[:16]}.... Refusing to publish."
+        )
 
 
 def what_was_drafted_section(body: str) -> str:
@@ -222,6 +268,7 @@ def main() -> int:
     client_name = load_client_config(args.pipeline).get("client", {}).get("name", "")
 
     fm, body = approved_record(args.pipeline, args.item_id)
+    verify_approved_content(args.pipeline, args.item_id, fm, body)
     section = what_was_drafted_section(body)
     html = post_body_html(section)
     backlink = backlink_edit(section)

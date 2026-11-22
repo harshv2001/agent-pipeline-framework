@@ -264,28 +264,45 @@ def approve(pipeline_dir: Path, item_id: str, actor: str) -> Path:
 
 
 def verify_manifest(pipeline_dir: Path, item_id: str) -> tuple[bool, str]:
-    """Re-hash a 06-approved item's body plus its declared manifest files
-    against the hash locked at approval time (docs/01-governance-rules.md
-    Rule 4). The Publisher Agent runs this before taking its declared
-    action (base-framework/agents/publisher-agent.md, Contract step 1) --
-    this is the script-enforced half of that contract step; the mismatch
-    message is what it logs via `--event failure` and refuses to publish on.
+    """Re-hash a 06-approved item's body -- and, if one was locked, its
+    manifest files -- against the hashes locked at approval time
+    (docs/01-governance-rules.md Rule 4). The Publisher Agent runs this
+    before taking its declared action (base-framework/agents/publisher-
+    agent.md, Contract step 1) -- this is the script-enforced half of
+    that contract step; the mismatch message is what it logs via
+    `--event failure` and refuses to publish on.
 
-    Returns (ok, message). An item with no locked `manifest_hash` (an older
-    approval, or a pipeline that never declared a manifest) is reported ok
-    with a note that only the body text was ever covered -- this script
-    never fails an item for a gap that predates this check existing."""
+    Returns (ok, message). The body is ALWAYS re-checked against
+    `content_hash`, regardless of whether a manifest was ever declared --
+    an earlier version of this function returned `True` unconditionally
+    whenever no `manifest_hash` was locked, which meant any approved item
+    with no manifest (the common case -- a manifest only exists for a
+    non-text artifact like an image) could have its body edited after
+    approval and still report as verified. A 06-approved record with no
+    `content_hash` at all (shouldn't happen -- `approve()` always sets
+    one) fails closed rather than being reported verified by default."""
     path = stage_file(pipeline_dir, "06-approved", item_id)
     if not path.exists():
         raise SystemExit(f"error: {path} does not exist -- only a 06-approved item can be verified")
     fm, body = read_item(path)
-    locked = fm.get("manifest_hash")
-    if not locked:
-        return True, f"{item_id}: no manifest_hash locked -- only content_hash (body text) is covered"
-    current = manifest_hash(pipeline_dir, body, fm.get("manifest"))
-    if current == locked:
-        return True, f"{item_id}: manifest hash matches ({len(fm.get('manifest') or [])} file(s) plus body)"
-    return False, f"{item_id}: MANIFEST MISMATCH -- locked {locked[:16]}... but current state hashes to {current[:16]}..."
+
+    locked_content = fm.get("content_hash")
+    if not locked_content:
+        return False, f"{item_id}: no content_hash locked at approval -- cannot verify, failing closed"
+    current_content = sha256_hex(body)
+    if current_content != locked_content:
+        return False, (f"{item_id}: CONTENT MISMATCH -- body changed since approval "
+                        f"(locked {locked_content[:16]}... but current body hashes to {current_content[:16]}...)")
+
+    locked_manifest = fm.get("manifest_hash")
+    if not locked_manifest:
+        return True, f"{item_id}: content_hash matches; no manifest_hash locked (no manifest declared at approval)"
+
+    current_manifest = manifest_hash(pipeline_dir, body, fm.get("manifest"))
+    if current_manifest != locked_manifest:
+        return False, (f"{item_id}: MANIFEST MISMATCH -- locked {locked_manifest[:16]}... "
+                        f"but current state hashes to {current_manifest[:16]}...")
+    return True, f"{item_id}: content_hash and manifest hash both match ({len(fm.get('manifest') or [])} file(s) plus body)"
 
 
 def reject(pipeline_dir: Path, item_id: str, actor: str, reason: str) -> Path:

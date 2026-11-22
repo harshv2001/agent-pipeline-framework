@@ -19,6 +19,45 @@ sequence diagram of the exact TOP-0001 run seeded below) — separate from
 the base framework's own pipeline-agnostic diagrams in
 [`../../docs/diagrams/`](../../docs/diagrams/).
 
+## What's already seeded in this checkout
+
+Before running anything, you can just look — this is a runnable example,
+but you don't have to run it to see a complete result:
+
+- **Topic engine**: a bootstrap site-read (`topic-engine/site-profile/`),
+  5 proposed topics, 4 approved and exported, 1 rejected
+  (`topic-engine/registry/registry.csv` shows all 5 and their status).
+- **Blog pipeline**: `TOP-0001` carried through all ten stages for real —
+  discovered, triaged, drafted (with a generated hero image), agent-reviewed
+  (with one flagged-but-not-blocking note), packaged, approved, and staged
+  to a local git branch standing in for ClientA's real site repo.
+- **The human-review revision loop, demonstrated with `TOP-0002`**: the
+  Agent Reviewer passed the first draft as structurally complete, but the
+  human reviewer judged it too thin and asked for more depth via
+  `scripts/advance_stage.py --revise` instead of approving or rejecting
+  outright — see `stage-store/07-rejected/TOP-0002.md` (the first
+  attempt, terminal with `revision: true`) and
+  `stage-store/08-executed/TOP-0002-v2.md` (the redraft that actually
+  addressed the feedback, approved and staged). This is a real,
+  recurring case — human review doesn't only ever rubber-stamp what
+  automated review already passed, and this framework's design accounts
+  for that explicitly (`docs/06-review-and-notification.md`, "Rejection
+  is not a dead end").
+- `TOP-0003` and `TOP-0004` are approved and exported to
+  `source-data/topics.csv` but not yet picked up — a realistic backlog,
+  not a failure. `pipeline/clienta-blog-pipeline/status-report.csv`
+  shows all four at a glance (note: it reports plain `TOP-0002` as
+  "Rejected," which is accurate for that exact record — it doesn't
+  follow `supersedes` chains to `TOP-0002-v2`, so read the row's
+  Comments column, not just its Status, for the full story).
+
+Run `python pipeline/clienta-blog-pipeline/scripts/init_demo_site_repo.py`
+to generate the local git repo these were staged to (it's gitignored —
+generated state, not source) and inspect
+`git log --all --oneline` / `git diff main stage/insights-top-0001` (or
+`stage/insights-top-0002-v2`) inside it to see exactly what a real
+publish would produce.
+
 ## What's here, and why three pieces
 
 ```
@@ -44,43 +83,36 @@ through regardless of where its topic came from.
 
 ## Run it yourself
 
-**In Claude Code** (the default way to run this): invoke
-[`setup-agency-client/SKILL.md`](setup-agency-client/SKILL.md). It runs
-the whole onboarding conversation for you — asks for the client's name,
-domain, and services, calls `setup_client.py`, then walks the site-read
-and topic-proposal steps as its own dispatch.
+There are three distinct things "running this" can mean here — worth
+being precise about, since they're not the same automation:
 
-**In any other AI assistant** (Codex, ChatGPT, Gemini) — or with no
-assistant at all — see [`WALKTHROUGH.md`](WALKTHROUGH.md) instead. Every
-step there is marked `[TERMINAL]` (a literal, copy-pasteable command, no
-shell-specific syntax) or `[ANY AI CHAT]` (paste a given prompt into
-whichever assistant you use and save its reply to the named file).
+1. **Just look at what's already here.** No setup, nothing to run —
+   see "What's already seeded in this checkout" above.
+2. **Set up a new client and run the bootstrap** (site read → proposed
+   topics → human approval → CSV export). In Claude Code, invoke
+   [`setup-agency-client/SKILL.md`](setup-agency-client/SKILL.md) — it
+   runs this part automatically, as one conversation, calling
+   `setup_client.py` and then dispatching the site-read and
+   topic-proposal steps itself. With any other AI assistant (Codex,
+   ChatGPT, Gemini), or none at all, see `WALKTHROUGH.md` Parts 1–3
+   instead — same sequence, done by hand, one step at a time.
+3. **Run one topic through the governed pipeline itself**
+   (draft → agent review → human approval → publish). This is a
+   *separate* automation from step 2's Skill — in Claude Code, it's
+   `base-framework/SKILL.md` (the generic pipeline-runner that dispatches
+   Source → Triage → Content → Reviewer → Publisher automatically for
+   *any* pipeline on this framework, not something built specifically for
+   this example). With any other assistant, see `WALKTHROUGH.md` Part 4 —
+   you tell your assistant which role to act as, one dispatch at a time;
+   nothing here currently chains that automatically outside Claude Code.
 
-See [`topic-engine/README.md`](topic-engine/README.md) and
+See [`WALKTHROUGH.md`](WALKTHROUGH.md) for the full step-by-step either
+way — every step there is marked `[TERMINAL]` (a literal, copy-pasteable
+command, no shell-specific syntax) or `[ANY AI CHAT]` (paste a given
+prompt into whichever assistant you use and save its reply to the named
+file) — and [`topic-engine/README.md`](topic-engine/README.md) /
 [`pipeline/clienta-blog-pipeline/spec.md`](pipeline/clienta-blog-pipeline/spec.md)
 for the full detail on each piece.
-
-## What's already seeded in this checkout
-
-So you can see a complete result without running anything first:
-
-- **Topic engine**: a bootstrap site-read (`topic-engine/site-profile/`),
-  5 proposed topics, 4 approved and exported, 1 rejected
-  (`topic-engine/registry/registry.csv` shows all 5 and their status).
-- **Blog pipeline**: `TOP-0001` carried through all ten stages for real —
-  discovered, triaged, drafted (with a generated hero image), agent-reviewed
-  (with one flagged-but-not-blocking note), packaged, approved, and staged
-  to a local git branch standing in for ClientA's real site repo. `TOP-0002`,
-  `TOP-0003`, `TOP-0004` are approved and exported to
-  `source-data/topics.csv` but not yet picked up — a realistic
-  backlog, not a failure. `pipeline/clienta-blog-pipeline/status-report.csv`
-  shows all four at a glance.
-
-Run `python pipeline/clienta-blog-pipeline/scripts/init_demo_site_repo.py`
-to generate the local git repo TOP-0001 was staged to (it's gitignored —
-generated state, not source) and inspect
-`git log --all --oneline` / `git diff main stage/insights-top-0001` inside
-it to see exactly what a real publish would produce.
 
 ## Adapting this for a real client
 

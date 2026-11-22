@@ -51,6 +51,18 @@ asking an agent to remember anything.
 
 ## Rule 3 — Two independent reviews gate every external action
 
+"Independent" here means a separate automated review stage followed by a
+separate human approval stage — same model, same session, same
+credentials as the rest of the pipeline. It is not a separate model,
+isolated credentials, or an independently enforced security boundary
+between the two; what makes it independent is that the Agent Reviewer is
+a fresh dispatch with no memory of the Content Agent's own reasoning
+(`base-framework/agents/agent-reviewer.md`, "Inputs": "Not given: any
+explanation from the Content Agent... this dispatch must be independent
+— reviewing the draft as it would look to a first-time reader"), and
+that the human decision is a genuinely separate, explicit act, never
+inferred or defaulted.
+
 Before any pipeline output leaves the pipeline's own stage-store — is
 posted, published, sent, or written to any location the pipeline doesn't
 own — it must pass both:

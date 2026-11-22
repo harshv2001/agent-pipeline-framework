@@ -39,6 +39,9 @@ FRONTMATTER_RE = re.compile(r"\A---\s*\n(.*?)\n---\s*\n?(.*)\Z", re.DOTALL)
 KNOWN_COMMENTS: dict[str, str] = {
     "TOP-0001": "Fully worked example for this repo: drafted, reviewed, approved, and "
                 "staged to a demo git branch -- see stage-store/08-executed/TOP-0001.md.",
+    "TOP-0002": "First draft passed agent review but the human reviewer asked for more "
+                "depth via --revise rather than --approve/--reject -- terminal here "
+                "(revision: true), see TOP-0002-v2 for the redraft and the outcome.",
 }
 
 

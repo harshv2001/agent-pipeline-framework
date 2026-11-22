@@ -338,6 +338,35 @@ class ManifestTests(unittest.TestCase):
         self.assertTrue(ok)
         self.assertIn("no manifest_hash locked", message)
 
+    def test_verify_manifest_fails_when_body_changes_with_no_manifest(self):
+        """Regression test: an earlier version of verify_manifest() returned
+        True unconditionally whenever no manifest_hash was locked, without
+        ever checking content_hash against the current body -- so a
+        no-manifest item (the common case) could be edited after approval
+        and still report as verified. This must fail."""
+        put(self.p, "05-pending-human-review", "a1", "pending")
+        approved_path = adv.approve(self.p, "a1", "human")
+        fm, _ = read_item(approved_path)
+        write_item(approved_path, fm, "\ntampered body after approval\n")
+        ok, message = adv.verify_manifest(self.p, "a1")
+        self.assertFalse(ok, message)
+        self.assertIn("MISMATCH", message)
+
+    def test_verify_manifest_fails_closed_when_content_hash_missing(self):
+        """A 06-approved record with no content_hash at all (shouldn't
+        happen -- approve() always sets one, but could come from a
+        hand-edited or legacy record) must never be reported as verified
+        by default."""
+        fm = {
+            "item_id": "a1", "pipeline": PIPE, "stage": "06-approved", "status": "approved",
+            "source_ref": "https://example.test/x", "produced_by": "test",
+            "created_at": "2026-10-06T00:00:00Z", "supersedes": None,
+        }
+        write_item(stage_file(self.p, "06-approved", "a1"), fm, "\nno hash locked\n")
+        ok, message = adv.verify_manifest(self.p, "a1")
+        self.assertFalse(ok, message)
+        self.assertIn("no content_hash locked", message)
+
     def test_cli_verify_manifest_exit_code(self):
         image = self.p / "assets" / "hero.png"
         image.parent.mkdir(parents=True)
