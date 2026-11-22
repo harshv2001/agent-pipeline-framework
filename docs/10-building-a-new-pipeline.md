@@ -6,7 +6,12 @@ which are worth engaging with by writing an original post in response, get
 it reviewed, publish to LinkedIn." **This is illustration only — none of
 this pipeline's files have actually been created in this delivery** (see
 `README.md`, "Status"). Treat the snippets below as what you'd write, not
-as something already sitting in `pipelines/`.
+as something already sitting in `pipelines/`. For a real, non-illustrative
+pipeline built this same way — every file actually written, one item
+carried through all ten stages for real — see
+[`examples/agency-blog-pipeline/`](../examples/agency-blog-pipeline/)
+instead; "Applying this to the other three examples" below points at it
+directly for the closest-matching case.
 
 Steps 0–5 (everything up to but not including creating scheduled tasks) can
 be mechanized from a single natural-language brief by the
@@ -157,7 +162,10 @@ claims.
 - **Blog creation**: same as the LinkedIn case, but the Content Agent does
   full drafting rather than a short reactive post, and the Agent Reviewer's
   policy weighs more heavily on factual support and citation, given the
-  longer form.
+  longer form. [`examples/agency-blog-pipeline/`](../examples/agency-blog-pipeline/)
+  is exactly this case, built for real rather than illustrated — a topic
+  source feeding a full-drafting Content Agent, with a worked item carried
+  through every stage.
 - **The "simple" republishing case** (read an already-reviewed article,
   post it to the blog/X/LinkedIn): source is the reviewed-articles folder
   itself (`filesystem`, `read_only`); `logic.md` is close to "proceed if not

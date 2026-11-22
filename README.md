@@ -96,12 +96,19 @@ agent-pipeline-framework/
 │                            the review-queue tools), the run-request consumer;
 │                            tests/ holds their unittest suite
 ├── examples/
-│   └── agency-blog-pipeline/   Complete worked example — a digital agency's
-│                                client-blog pipeline, with a topic-engine
-│                                instance upstream of it and one item carried
-│                                through all ten stages for real. Start here
-│                                if you want to see it running before reading
-│                                the docs top to bottom.
+│   └── agency-blog-pipeline/    Complete worked example — start here to see it running before reading the docs
+│       ├── README.md             Orientation + what's already seeded in this checkout
+│       ├── WALKTHROUGH.md        Step-by-step; every step marked [TERMINAL] or [ANY AI CHAT]
+│       ├── ARCHITECTURE.md       This example's own diagrams (separate from docs/diagrams/)
+│       ├── client-config.yaml    Name/services/brand palette — the only client-specific values
+│       ├── setup_client.py       Generates a fresh instance for a real client (no AI involved)
+│       ├── setup-agency-client/  Claude Code Skill wrapping setup_client.py as a conversation
+│       ├── _templates/           What setup_client.py renders config.yaml/spec.md/logic.md from
+│       ├── sample-client-site/   Fixture site — what the topic engine analyzes
+│       ├── topic-engine/         Site analysis → proposed topics → human-approved CSV export
+│       └── pipeline/
+│           └── clienta-blog-pipeline/   The 10-stage governed pipeline; one item
+│                                         staged for real in its own stage-store
 └── pipelines/               Your own concrete pipelines go here (empty in this repo)
 ```
 
