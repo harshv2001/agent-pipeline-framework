@@ -1,0 +1,43 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          pip install -r scripts/requirements.txt
+          pip install -r examples/agency-blog-pipeline/topic-engine/scripts/requirements.txt
+
+      - name: Base framework unit tests
+        run: python -m unittest discover -s scripts/tests -v
+
+      - name: Validate the shipped example pipeline's config.yaml/spec.md/logic.md
+        run: |
+          python scripts/validate_stage_file.py \
+            --pipeline examples/agency-blog-pipeline/pipeline/clienta-blog-pipeline \
+            --config examples/agency-blog-pipeline/pipeline/clienta-blog-pipeline/config.yaml
+
+      - name: Topic-engine example unit tests
+        working-directory: examples/agency-blog-pipeline/topic-engine
+        run: python -m unittest discover -s scripts/tests -v
+
+      - name: Validate the shipped example's topic registry
+        run: |
+          python examples/agency-blog-pipeline/topic-engine/scripts/validate_registry.py \
+            --engine examples/agency-blog-pipeline/topic-engine

@@ -1,5 +1,8 @@
 # Agent Pipeline Framework
 
+[![tests](https://github.com/harshv2001/agent-pipeline-framework/actions/workflows/tests.yml/badge.svg)](https://github.com/harshv2001/agent-pipeline-framework/actions/workflows/tests.yml)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+
 A base specification and working scripts for building **governed, multi-agent AI pipelines** —
 automated content and publishing workflows, designed for **Claude Code**, where every
 item passes a two-gate review (an automated agent check, then an explicit human
@@ -169,7 +172,55 @@ until a human merges to production and records it with
 `advance_stage.py --promote`. The scripts' tests run with
 `python -m unittest discover -s scripts/tests`.
 
-Known gaps and where this is headed next are tracked as issues — contributions
+## Limitations and Roadmap
+
+What this framework doesn't do today, stated plainly:
+
+- **"Append-only" and "immutable" are script-discipline guarantees, not
+  cryptographic or filesystem ones** — see `docs/01-governance-rules.md`,
+  "What these guarantees actually mean." Only Rule 4's content hash is
+  checked automatically before every publish; the rest is enforced by
+  what this framework's own scripts choose to do, not a permission
+  boundary.
+- **No scheduled-task or CI setup is created for you.** Steps 6–8 of
+  `docs/10-building-a-new-pipeline.md` (scheduled tasks, the dry run,
+  going live) are deliberately manual, human-triggered acts.
+- **Automatic multi-role dispatch is Claude Code-specific.** Another AI
+  assistant can act as each agent role (the role files are plain
+  markdown), but only Claude Code's own Skill/subagent system currently
+  chains Source → Triage → Content → Reviewer → Publisher automatically
+  without a human relaying between steps — see the FAQ below and
+  `examples/agency-blog-pipeline/WALKTHROUGH.md`.
+- **One concrete example ships today** —
+  `examples/agency-blog-pipeline/`, a CSV-sourced, full-drafting content
+  pipeline. The other pipeline shapes in
+  `docs/10-building-a-new-pipeline.md` (a reactive LinkedIn responder, a
+  republishing pipeline, a direct website-update pipeline) are
+  illustrated there, not built.
+- **The stage-store is files in git, by design**
+  (`docs/03-stage-store-model.md`, "Why markdown files instead of a
+  database") — a deliberate tradeoff for auditability and zero hosting,
+  not an oversight, but it means this doesn't scale past what a human
+  can reasonably browse in a folder. A database backend once volume
+  outgrows that is a named, intended option, not yet built.
+- **No hosted or managed version.** This is self-hosted — you run it
+  inside your own Claude Code / Cowork sessions and your own git
+  repository; there's no service to sign up for.
+- **Pre-v1, no tagged release yet.**
+
+Roadmap, roughly in priority order:
+
+1. Tag a `v0.1.0` release once this list is as short as it's going to get
+   before one.
+2. A second worked example in a different shape — most likely the
+   republishing case from `docs/10-building-a-new-pipeline.md`, since
+   it's the cheapest to build well and demonstrates the lighter-weight
+   end of what this framework supports.
+3. A Claude Agent SDK-based orchestrator as an alternative to Claude
+   Code's own Skill dispatch, for running this with no Claude Code
+   session at all (see "How it runs" above).
+
+Known gaps beyond this list are tracked as GitHub issues — contributions
 and discussion welcome.
 
 ## Frequently asked questions

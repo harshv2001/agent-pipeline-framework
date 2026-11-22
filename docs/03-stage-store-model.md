@@ -82,6 +82,14 @@ version.
 
 ## Immutability by stage
 
+"Immutable" and "append-only" below describe what this framework's own
+scripts do — nothing in `scripts/` ever rewrites a stage-store record
+once written — not a filesystem or git permission that blocks a direct
+edit. See `docs/01-governance-rules.md`, "What these guarantees actually
+mean," for exactly what that distinction does and doesn't rule out, and
+which single guarantee here (Rule 4's content hash) is checked
+cryptographically rather than by convention.
+
 - `00-source-manifest` and `01-raw-metadata`: fully immutable after
   creation. If the source changes, that's a new item (new `item_id`) or a
   new pipeline run's fresh discovery — never an edit to a past record. For

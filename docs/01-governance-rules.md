@@ -24,7 +24,9 @@ Enforcement:
   Where only a general-access credential is available (a personal browser
   session via Claude in Chrome, for instance), the source agent's prompt
   explicitly enumerates the prohibited actions and the human reviewer
-  spot-checks for accidental writes during setup.
+  spot-checks for accidental writes during setup — this case is
+  prompt-level enforcement with a human backstop, not a credential
+  boundary; see "What these guarantees actually mean" below.
 - `scripts/validate_stage_file.py` rejects any `config.yaml` that declares
   `access: write` (or omits `access`) on anything referenced as a source.
 - The Source Agent role (`base-framework/agents/source-agent.md`) has no
@@ -38,7 +40,10 @@ named stage folders (the "stage-store" — see
 `docs/03-stage-store-model.md`). An item moves forward one stage at a time;
 a record already written for a completed stage is never edited in place.
 Corrections happen by writing a new record that supersedes the old one and
-says so, not by overwriting history.
+says so, not by overwriting history. "Never edited in place" describes
+what this framework's own scripts do, not a permission boundary — see
+"What these guarantees actually mean" below for exactly what that does
+and doesn't rule out.
 
 This is what makes "show me exactly what was found, decided, drafted, and
 approved for item X" answerable by reading files, months later, without
@@ -96,7 +101,10 @@ Every stage transition, every agent's action, every automated review
 verdict, and every human decision is written to that pipeline's audit log
 (`stage-store/09-audit-log/`) as a new entry. Nothing in the audit log is
 ever edited or deleted, including rejected or discarded items — a discarded
-item's record says it was discarded and why; it is not removed.
+item's record says it was discarded and why; it is not removed. Same
+caveat as Rule 2: this is what `scripts/_common.py:append_audit_log` does
+(always appends, never rewrites), not a write-protection on the file
+itself — see "What these guarantees actually mean" below.
 
 ## Rule 6 — Config changes are reviewable like code changes
 
@@ -115,6 +123,52 @@ default"), or restrict which connectors it uses. It may never remove a
 stage, weaken a review requirement, or grant an agent role a capability the
 base role doesn't have. `docs/02-inheritance-model.md` specifies exactly
 which fields are open for this kind of extension and which are fixed.
+
+## What these guarantees actually mean
+
+This document uses "read-only," "append-only," and "immutable" to
+describe three different strengths of enforcement. Conflating them is
+exactly the kind of gap an outside reader would be right to flag, so
+here's each one stated precisely:
+
+- **Cryptographically checked, every time** — Rule 4's content hash,
+  and only that. `scripts/advance_stage.py --verify-manifest` re-hashes
+  the approved content immediately before publish and refuses on any
+  mismatch, including a single-character edit. This is the one
+  guarantee here that this framework's own tooling cannot be talked
+  into silently violating.
+- **Enforced by what the scripts choose to do, not by a permission
+  boundary** — "append-only" and "immutable" (Rules 2 and 5;
+  `docs/03-stage-store-model.md`, "Immutability by stage"). No script
+  this framework ships ever rewrites a stage-store record once written
+  — `advance_stage.py` only ever creates new files or appends new
+  audit-log entries. But nothing stops a human (or a compromised
+  credential) with ordinary git write access from hand-editing a
+  historical file directly; git itself enforces nothing here. The real
+  guarantee is "this framework's own codepath never does this," not
+  "this cannot be done." If you need the stronger version, add git
+  branch protection or a write-once storage backend on top — this
+  framework doesn't provide it on its own.
+- **Enforced at the tool-grant level where the connector allows it,
+  otherwise prompt-level with a human spot-check as the backstop** —
+  Rule 1's read-only sources. Where a connector exposes a genuinely
+  read-only credential or tool (most MCP servers, most APIs), the
+  Source Agent's tool grant has no write capability at all for that
+  connector — code-enforced, not just instructed. Where only a
+  general-access credential is available and the connector is
+  something like a browser session (Claude in Chrome against a
+  logged-in account, for instance), the agent's own tools can
+  technically perform a write action on that account; what stops it is
+  the prompt's explicit prohibition plus a human's spot-check during
+  setup, not a credential boundary. This is a real, known risk
+  category, not a hypothetical one — it's why a browser-connector
+  source should always be treated as the weaker case and reviewed
+  accordingly, never assumed equivalent to a scoped API credential.
+
+If a pipeline you're building needs something stronger than "this
+framework's own tooling doesn't do it" — a compliance requirement that
+data literally cannot be altered, not just isn't altered by this code —
+that's outside what this framework closes on its own.
 
 ## What happens on a rule violation
 
