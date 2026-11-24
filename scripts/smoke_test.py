@@ -192,6 +192,17 @@ def main() -> int:
             return fail("tampered publish attempt should not have written any output")
         print("OK: tampered-content path -- publish correctly refused, nothing written")
 
+        # 10. Confirm the refusal was also logged as a policy violation,
+        # automatically (docs/01-governance-rules.md, "What happens on a
+        # rule violation") -- not left for a human to log by hand.
+        audit_dir = pipeline_dir / "stage-store" / "09-audit-log"
+        audit_text = "\n".join(
+            p.read_text(encoding="utf-8") for p in sorted(audit_dir.glob("*.md"))
+        ) if audit_dir.exists() else ""
+        if "event: violation" not in audit_text or "SMK-0001" not in audit_text:
+            return fail("tampered publish attempt should have auto-logged an event: violation entry")
+        print("OK: tampered-content path auto-logged a policy violation to the audit log")
+
     print("Smoke test passed.")
     return 0
 

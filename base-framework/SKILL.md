@@ -105,10 +105,13 @@ Follow `docs/05-execution-model.md`, "A publish run, step by step." In
 summary: list `06-approved` items not yet in `08-executed`; for each,
 dispatch the **Publisher Agent** scoped only to that item's specific
 `output_destinations` entry; it re-hashes and compares before acting (Rule
-4); on success write `08-executed` via `advance_stage.py`; on hash mismatch
-or connector failure, log via `advance_stage.py --event failure` and leave
-the item in `06-approved` — do not retry within the same run and do not
-fall back to a different connector or action. Commit, report.
+4) via `advance_stage.py --verify-manifest`, which logs a FAIL automatically
+as `event: violation` — no separate logging call needed for that case; on
+success write `08-executed` via `advance_stage.py`; on a hash mismatch,
+stop there (already logged) and leave the item in `06-approved`; on a
+connector failure, log via `advance_stage.py --event failure` and leave the
+item in `06-approved` — either way, do not retry within the same run and do
+not fall back to a different connector or action. Commit, report.
 
 A publish run only ever *stages*. If the human later merges the item's
 staging branch to production — an act outside the pipeline's declared

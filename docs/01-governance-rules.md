@@ -184,8 +184,38 @@ that's outside what this framework closes on its own.
 
 ## What happens on a rule violation
 
-If any script or agent detects an attempted violation of Rules 1, 3, 4, or
-7 (the rules that are mechanically checkable), the run halts, the attempted
-action is logged as a policy violation in the audit log, and the item is
-routed to human review with the violation flagged — it is never silently
-corrected and allowed to proceed.
+If any script detects an attempted violation of Rules 1, 3, 4, or 7 (the
+rules that are mechanically checkable), it halts and refuses to proceed —
+no publish, no stage transition, no silent correction. For Rule 4
+specifically, `scripts/advance_stage.py --verify-manifest` (and its
+self-contained duplicate, `examples/agency-blog-pipeline/pipeline/
+clienta-blog-pipeline/scripts/publish_output.py`'s
+`verify_approved_content()`) appends the violation to that pipeline's
+audit log itself, as `event: violation`, the moment it detects a mismatch
+— an earlier version of this framework left that logging step to the
+dispatched role's own discretion (a separate `--event` call it could
+forget to make), which is exactly the kind of prompt-level-only
+enforcement "What these guarantees actually mean" above warns against
+relying on for a rule this document calls mechanically checkable.
+
+What does *not* happen automatically: the item is not moved anywhere.
+A hash-mismatched item stays exactly where it was found —
+`06-approved`, already past both reviews — it is not "routed to human
+review," since it's already been through one; claiming otherwise would
+misdescribe what actually happened. Unsticking it is a deliberate,
+separate human act: read the violation entry, decide what changed, and
+run `scripts/advance_stage.py --revise --from-stage 06-approved
+<item_id> --reason "..."` (reject-with-feedback into `07-rejected`, plus
+a new versioned `03-draft` for a fresh agent-review-then-human-review
+pass) or leave it rejected outright. Nothing re-approves it
+automatically, and nothing — including this framework's own
+scripts — ever hand-edits the `06-approved` record to make it match
+again; Rule 2's "never edited in place" holds here too.
+
+Rules 1 and 3 (a prohibited write attempt, a review stage skipped) are
+caught by tool-grant limits and `ALLOWED_TRANSITIONS` respectively, not
+by a standalone verification script with an audit log of its own to
+write to — logging those as `event: violation` is still the acting
+role's own responsibility (`base-framework/agents/archivist-agent.md`,
+Contract step 4), the same prompt-level discipline as everything else
+in "What these guarantees actually mean."

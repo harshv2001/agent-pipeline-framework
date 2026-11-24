@@ -74,7 +74,11 @@ Usage:
     # manifest-listed files (images, rendered pages -- templates/review-
     # packet.template.md) against the hash locked at approval. Run this
     # before taking the declared publish action; refuse to publish on FAIL.
-    python scripts/advance_stage.py --pipeline pipelines/<name> --verify-manifest <item_id>
+    # A FAIL is also logged automatically as event: violation (docs/01-
+    # governance-rules.md, "What happens on a rule violation") -- the
+    # dispatched role does not need a separate --event call for this case.
+    # Pass --actor to name who/what ran the check; defaults to "human".
+    python scripts/advance_stage.py --pipeline pipelines/<name> --verify-manifest <item_id> --actor "publisher-agent v1"
 
     # After the human merges an item's staging branch to production (an act
     # outside this pipeline's declared output scope), record it so the 08
@@ -263,14 +267,13 @@ def approve(pipeline_dir: Path, item_id: str, actor: str) -> Path:
     )
 
 
-def verify_manifest(pipeline_dir: Path, item_id: str) -> tuple[bool, str]:
+def verify_manifest(pipeline_dir: Path, item_id: str, actor: str = "human") -> tuple[bool, str]:
     """Re-hash a 06-approved item's body -- and, if one was locked, its
     manifest files -- against the hashes locked at approval time
     (docs/01-governance-rules.md Rule 4). The Publisher Agent runs this
     before taking its declared action (base-framework/agents/publisher-
     agent.md, Contract step 1) -- this is the script-enforced half of
-    that contract step; the mismatch message is what it logs via
-    `--event failure` and refuses to publish on.
+    that contract step.
 
     Returns (ok, message). The body is ALWAYS re-checked against
     `content_hash`, regardless of whether a manifest was ever declared --
@@ -280,19 +283,45 @@ def verify_manifest(pipeline_dir: Path, item_id: str) -> tuple[bool, str]:
     non-text artifact like an image) could have its body edited after
     approval and still report as verified. A 06-approved record with no
     `content_hash` at all (shouldn't happen -- `approve()` always sets
-    one) fails closed rather than being reported verified by default."""
+    one) fails closed rather than being reported verified by default.
+
+    Every FAIL is appended to the audit log here, as `event: violation`
+    (archivist-agent.md Contract step 4 names a hash mismatch as exactly
+    this), before returning -- not left for the calling role to remember
+    as a separate `--event` call. An earlier version of this framework
+    documented that second step (base-framework/agents/publisher-agent.md,
+    SKILL.md) but never enforced it, which meant the one Rule 4 violation
+    this framework claims is "mechanically checkable" (docs/01-governance-
+    rules.md, "What happens on a rule violation") was actually logged only
+    if the dispatched agent happened to run the extra command -- the same
+    gap this framework explicitly argues against relying on prompt
+    discipline for. `actor` names who/what ran this check (e.g. "publisher-
+    agent v1"); it does not change what's checked. A passing result is not
+    logged -- only a FAIL is a reportable event."""
     path = stage_file(pipeline_dir, "06-approved", item_id)
     if not path.exists():
         raise SystemExit(f"error: {path} does not exist -- only a 06-approved item can be verified")
     fm, body = read_item(path)
 
+    def fail(message: str) -> tuple[bool, str]:
+        append_audit_log(pipeline_dir, {
+            "timestamp": now_iso(),
+            "item_id": item_id,
+            "pipeline": pipeline_dir.name,
+            "event": "violation",
+            "actor": actor,
+            "detail": f"Rule 4 violation (docs/01-governance-rules.md): {message}",
+            "ref": str(path.relative_to(pipeline_dir)),
+        })
+        return False, message
+
     locked_content = fm.get("content_hash")
     if not locked_content:
-        return False, f"{item_id}: no content_hash locked at approval -- cannot verify, failing closed"
+        return fail(f"{item_id}: no content_hash locked at approval -- cannot verify, failing closed")
     current_content = sha256_hex(body)
     if current_content != locked_content:
-        return False, (f"{item_id}: CONTENT MISMATCH -- body changed since approval "
-                        f"(locked {locked_content[:16]}... but current body hashes to {current_content[:16]}...)")
+        return fail(f"{item_id}: CONTENT MISMATCH -- body changed since approval "
+                     f"(locked {locked_content[:16]}... but current body hashes to {current_content[:16]}...)")
 
     locked_manifest = fm.get("manifest_hash")
     if not locked_manifest:
@@ -300,8 +329,8 @@ def verify_manifest(pipeline_dir: Path, item_id: str) -> tuple[bool, str]:
 
     current_manifest = manifest_hash(pipeline_dir, body, fm.get("manifest"))
     if current_manifest != locked_manifest:
-        return False, (f"{item_id}: MANIFEST MISMATCH -- locked {locked_manifest[:16]}... "
-                        f"but current state hashes to {current_manifest[:16]}...")
+        return fail(f"{item_id}: MANIFEST MISMATCH -- locked {locked_manifest[:16]}... "
+                     f"but current state hashes to {current_manifest[:16]}...")
     return True, f"{item_id}: content_hash and manifest hash both match ({len(fm.get('manifest') or [])} file(s) plus body)"
 
 
@@ -532,7 +561,9 @@ def main() -> int:
     parser.add_argument("--verify-manifest", metavar="ITEM_ID",
                          help="Re-hash a 06-approved item's body plus its declared manifest "
                               "files against the hash locked at approval. Run before publishing "
-                              "(base-framework/agents/publisher-agent.md, Contract step 1).")
+                              "(base-framework/agents/publisher-agent.md, Contract step 1). A "
+                              "FAIL is automatically logged to the audit log as event: "
+                              "violation -- pass --actor to say who/what ran the check.")
     parser.add_argument("--cleanup-queue", dest="cleanup_queue", action="store_true",
                          help="Remove leftover 05 copies of items already at 06/07/08 (verified byte-identical first)")
     parser.add_argument("--cleanup-orphaned-reviews", dest="cleanup_orphaned_reviews", action="store_true",
@@ -553,7 +584,7 @@ def main() -> int:
         return 1
 
     if args.verify_manifest:
-        ok, message = verify_manifest(pipeline_dir, args.verify_manifest)
+        ok, message = verify_manifest(pipeline_dir, args.verify_manifest, actor=args.actor)
         print(("OK: " if ok else "FAIL: ") + message)
         return 0 if ok else 1
 

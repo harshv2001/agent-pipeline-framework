@@ -367,6 +367,34 @@ class ManifestTests(unittest.TestCase):
         self.assertFalse(ok, message)
         self.assertIn("no content_hash locked", message)
 
+    def test_verify_manifest_fail_logs_violation_to_audit_log(self):
+        """Regression test: an earlier version of this framework documented
+        (base-framework/agents/publisher-agent.md, SKILL.md) that a hash
+        mismatch gets logged as event: violation, but left that logging to
+        a separate --event call the dispatched role had to remember to
+        make -- the function itself never wrote anything. The audit entry
+        must now exist the moment verify_manifest() reports FAIL, with no
+        second step required."""
+        put(self.p, "05-pending-human-review", "a1", "pending")
+        approved_path = adv.approve(self.p, "a1", "human")
+        fm, _ = read_item(approved_path)
+        write_item(approved_path, fm, "\ntampered body after approval\n")
+        ok, message = adv.verify_manifest(self.p, "a1", actor="publisher-agent v1")
+        self.assertFalse(ok, message)
+        entries = find_audit_entries_by_ref(self.p, "stage-store/06-approved/a1.md")
+        violations = [e for e in entries if e.get("event") == "violation"]
+        self.assertEqual(len(violations), 1, entries)
+        self.assertEqual(violations[0]["actor"], "publisher-agent v1")
+        self.assertIn("MISMATCH", violations[0]["detail"])
+
+    def test_verify_manifest_ok_does_not_log_a_violation(self):
+        put(self.p, "05-pending-human-review", "a1", "pending")
+        adv.approve(self.p, "a1", "human")
+        ok, message = adv.verify_manifest(self.p, "a1")
+        self.assertTrue(ok, message)
+        entries = find_audit_entries_by_ref(self.p, "stage-store/06-approved/a1.md")
+        self.assertEqual([e for e in entries if e.get("event") == "violation"], [])
+
     def test_cli_verify_manifest_exit_code(self):
         image = self.p / "assets" / "hero.png"
         image.parent.mkdir(parents=True)

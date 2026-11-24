@@ -29,6 +29,7 @@ import re
 import shutil
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 import yaml
@@ -77,6 +78,33 @@ def approved_record(pipeline_dir: Path, item_id: str) -> tuple[dict, str]:
     return split_frontmatter(path.read_text(encoding="utf-8"))
 
 
+def _append_violation(pipeline_dir: Path, item_id: str, detail: str) -> None:
+    """Append one `event: violation` entry to this pipeline's audit log,
+    same file-per-UTC-day format as scripts/_common.py:append_audit_log --
+    duplicated rather than imported, same portability rationale as
+    verify_approved_content below. Called from every fail path there, so a
+    Rule 4 violation is on record the moment it's detected, not only if
+    whoever's running this by hand (WALKTHROUGH.md) also remembers a
+    separate logging step -- docs/01-governance-rules.md, "What happens on
+    a rule violation"."""
+    log_dir = pipeline_dir / "stage-store" / "09-audit-log"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    now = datetime.now(timezone.utc)
+    log_path = log_dir / f"{now.strftime('%Y-%m-%d')}.md"
+    entry = {
+        "timestamp": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "item_id": item_id,
+        "pipeline": pipeline_dir.name,
+        "event": "violation",
+        "actor": "publish_output.py",
+        "detail": f"Rule 4 violation (docs/01-governance-rules.md): {detail}",
+        "ref": f"stage-store/06-approved/{item_id}.md",
+    }
+    fm_text = yaml.safe_dump(entry, sort_keys=False, allow_unicode=True).strip()
+    existing = log_path.read_text(encoding="utf-8") if log_path.exists() else ""
+    log_path.write_text(existing + f"---\n{fm_text}\n---\n\n\n", encoding="utf-8")
+
+
 def verify_approved_content(pipeline_dir: Path, item_id: str, fm: dict, body: str) -> None:
     """Re-hash the approved body -- and, if one was locked, its manifest
     files -- against what was locked at approval time, and refuse to
@@ -87,7 +115,10 @@ def verify_approved_content(pipeline_dir: Path, item_id: str, fm: dict, body: st
     `scripts/advance_stage.py --verify-manifest` as a separate step first
     -- a human following WALKTHROUGH.md by hand, not an LLM following the
     Publisher Agent's own contract, is exactly the case that step was
-    never guaranteed to happen before.
+    never guaranteed to happen before. Every fail path here logs the
+    violation itself (`_append_violation`, above) for the same reason --
+    see scripts/advance_stage.py:verify_manifest's docstring for the full
+    rationale.
 
     A small, self-contained copy of scripts/advance_stage.py's
     verify_manifest() (not imported, so this example stays portable on
@@ -97,13 +128,18 @@ def verify_approved_content(pipeline_dir: Path, item_id: str, fm: dict, body: st
     listed file (sorted), joined by newlines and hashed again."""
     locked_content = fm.get("content_hash")
     if not locked_content:
-        raise SystemExit(f"error: {item_id}: no content_hash locked at approval -- refusing to publish")
+        message = f"{item_id}: no content_hash locked at approval -- refusing to publish"
+        _append_violation(pipeline_dir, item_id, message)
+        raise SystemExit(f"error: {message}")
     current_content = hashlib.sha256(body.encode("utf-8")).hexdigest()
     if current_content != locked_content:
+        message = (f"{item_id}: CONTENT MISMATCH -- body changed since approval "
+                    f"(locked {locked_content[:16]}... but current body hashes to {current_content[:16]}...)")
+        _append_violation(pipeline_dir, item_id, message)
         raise SystemExit(
-            f"error: {item_id}: CONTENT MISMATCH -- body changed since approval "
-            f"(locked {locked_content[:16]}... but current body hashes to {current_content[:16]}...). "
-            f"Refusing to publish -- reject this record back through review, never edit and republish."
+            f"error: {message}. Refusing to publish -- reject this record back through "
+            f"review (scripts/advance_stage.py --revise --from-stage 06-approved), never "
+            f"edit and republish."
         )
 
     locked_manifest = fm.get("manifest_hash")
@@ -116,10 +152,10 @@ def verify_approved_content(pipeline_dir: Path, item_id: str, fm: dict, body: st
                      else f"{rel}:MISSING")
     current_manifest = hashlib.sha256("\n".join(lines).encode("utf-8")).hexdigest()
     if current_manifest != locked_manifest:
-        raise SystemExit(
-            f"error: {item_id}: MANIFEST MISMATCH -- locked {locked_manifest[:16]}... "
-            f"but current state hashes to {current_manifest[:16]}.... Refusing to publish."
-        )
+        message = (f"{item_id}: MANIFEST MISMATCH -- locked {locked_manifest[:16]}... "
+                    f"but current state hashes to {current_manifest[:16]}...")
+        _append_violation(pipeline_dir, item_id, message)
+        raise SystemExit(f"error: {message}. Refusing to publish.")
 
 
 def what_was_drafted_section(body: str) -> str:

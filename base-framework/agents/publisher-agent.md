@@ -36,9 +36,12 @@ publish-capable or externally-write-capable tool.
   `staged` when the output went to a preview/staging destination awaiting a
   human merge (this role never promotes — that is a separate human act,
   recorded with `advance_stage.py --promote`, `docs/03-stage-store-model.md`).
-- On failure: no `08-executed` record; instead, a failure event via
-  `scripts/advance_stage.py --event failure`, and the item stays in
-  `06-approved`.
+- On a hash mismatch (Contract step 1): no `08-executed` record; the
+  verify-manifest check itself has already logged the violation (see
+  below), and the item stays in `06-approved`.
+- On a connector error (Contract step 4): no `08-executed` record;
+  instead, a failure event via `scripts/advance_stage.py --event
+  failure`, and the item stays in `06-approved`.
 
 ## Contract
 
@@ -49,12 +52,19 @@ publish-capable or externally-write-capable tool.
    listed in the item's `manifest` field (an image, a rendered page — any
    non-text artifact the Content Agent finalized at draft time per its own
    Contract step 5) against the hash locked at approval, and reports FAIL
-   on any mismatch — even whitespace. On FAIL, halt this item: log it via
-   `--event failure`, do not publish, do not attempt to reconcile or
-   re-approve automatically. An OK result that notes no `manifest_hash` was
-   locked means this item (or this pipeline) never declared a manifest, so
-   only the body text is covered — proceed, but that gap is this
-   pipeline's to close, not this role's to work around.
+   on any mismatch — even whitespace. The check itself logs a FAIL to the
+   audit log as `event: violation` (archivist-agent.md Contract step 4) —
+   this role does not need its own `--event` call for this case. On FAIL,
+   halt this item: do not publish, do not attempt to reconcile or
+   re-approve automatically, and do not edit the audit-log entry the check
+   just wrote. Getting a mismatched item published is a separate human
+   decision — routing it back through review (`advance_stage.py --revise
+   --from-stage 06-approved <item_id> --reason "..."`), never a hand-edit
+   of the `06-approved` record to make it match again. An OK result that
+   notes no `manifest_hash` was locked means this item (or this pipeline)
+   never declared a manifest, so only the body text is covered — proceed,
+   but that gap is this pipeline's to close, not this role's to work
+   around.
 2. Take exactly the action named in `action_scope` — nothing broader. If
    `action_scope` says "create a draft post," this role creates a draft; it
    does not also publish that draft, even if the tool it's using makes that
